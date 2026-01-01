@@ -30,10 +30,14 @@ export default function Home() {
     }
 
     setIsLoading(true);
-    initiateAnonymousSignIn(auth);
     
+    // Set up a listener that will run once.
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // We only want this to run once, so we unsubscribe immediately.
+      unsubscribe();
+
       if (user) {
+        // User is signed in.
         try {
           await updateProfile(user, {
             displayName: name,
@@ -50,24 +54,33 @@ export default function Home() {
                 description: 'Could not save your name. Please try again.',
                 variant: 'destructive',
             });
-        } finally {
-            unsubscribe();
             setIsLoading(false);
         }
+        // Don't set loading to false here, as we are navigating away.
       } else {
-        const errorUnsubscribe = auth.onIdTokenChanged(null, (error) => {
-            console.error('Anonymous sign-in failed:', error);
-            toast({
-                title: 'Authentication Failed',
-                description: 'Could not start your session. Please try again.',
-                variant: 'destructive',
-            });
-            setIsLoading(false);
-            errorUnsubscribe();
+        // User is signed out or sign-in failed.
+        console.error('Anonymous sign-in failed.');
+        toast({
+            title: 'Authentication Failed',
+            description: 'Could not start your session. Please try again.',
+            variant: 'destructive',
         });
+        setIsLoading(false);
       }
+    }, (error) => {
+        // This callback handles errors during the listener setup.
+        unsubscribe();
+        console.error('onAuthStateChanged error:', error);
+        toast({
+            title: 'Authentication Error',
+            description: 'An unexpected error occurred. Please try again.',
+            variant: 'destructive',
+        });
+        setIsLoading(false);
     });
 
+    // Initiate the sign-in process. The listener above will catch the result.
+    initiateAnonymousSignIn(auth);
   };
 
   return (
