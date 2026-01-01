@@ -52,7 +52,7 @@ export default function DashboardClient({ aptitudeAnalysisAction }: { aptitudeAn
       setQuizResults(parsedResults);
       setPageState('analyzing');
       
-      aptitudeAnalysisAction(parsedResults).then(analysisResult => {
+      aptitudeAnalysisAction({ answers: parsedResults.answers, timeTaken: parsedResults.timeTaken }).then(analysisResult => {
           setAnalysis(analysisResult);
           setPageState('results');
       });
@@ -110,7 +110,7 @@ export default function DashboardClient({ aptitudeAnalysisAction }: { aptitudeAn
       <div className="flex min-h-screen flex-col items-center justify-center p-8">
         <Bot className="h-16 w-16 text-primary animate-bounce mb-4" />
         <h2 className="text-2xl font-semibold mb-2">Analyzing your results...</h2>
-        <p className="text-muted-foreground">Our AI is crafting your personalized career path.</p>
+        <p className="text-muted-foreground">Our AI is charting the best path for you after 10th grade.</p>
         <div className="w-full max-w-lg mt-8 space-y-4">
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-12 w-3/4" />
@@ -124,7 +124,7 @@ export default function DashboardClient({ aptitudeAnalysisAction }: { aptitudeAn
     <div className="min-h-screen bg-background p-4 md:p-8">
       <header className="max-w-5xl mx-auto mb-8">
         <h1 className="text-4xl font-bold text-primary">Your Career Dashboard</h1>
-        <p className="text-lg text-muted-foreground">Welcome, {user?.displayName || 'Explorer'}. Here's what we've discovered.</p>
+        <p className="text-lg text-muted-foreground">Welcome, {user?.displayName || 'Explorer'}. Here is your personalized path forward.</p>
       </header>
 
       <main className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -136,8 +136,8 @@ export default function DashboardClient({ aptitudeAnalysisAction }: { aptitudeAn
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Recommended Streams</CardTitle>
-                    <CardDescription>Click a stream to explore.</CardDescription>
+                    <CardTitle>Example Career Paths</CardTitle>
+                    <CardDescription>Click a path to explore.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
                     {analysis?.careerStreams.map(stream => (
@@ -153,12 +153,12 @@ export default function DashboardClient({ aptitudeAnalysisAction }: { aptitudeAn
         <div className="lg:col-span-2 space-y-6">
           {!selectedStream ? (
             <div className="flex items-center justify-center h-full rounded-lg border-2 border-dashed border-border p-12 text-center">
-                <p className="text-muted-foreground">Select a career stream on the left to see your roadmap and more.</p>
+                <p className="text-muted-foreground">Select a career path on the left to see your educational roadmap.</p>
             </div>
           ) : (
             <>
               <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><BookOpen/> {selectedStream} - 10-Year Roadmap</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2"><BookOpen/> {selectedStream} - 5-Year Roadmap</CardTitle></CardHeader>
                 <CardContent>
                     <CareerRoadmap stream={selectedStream} />
                     <Button onClick={handleSimulate} disabled={isSimulating} className="mt-4 w-full">

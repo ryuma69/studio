@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Rocket, User as UserIcon } from 'lucide-react';
+import { Compass, User as UserIcon } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function Home() {
@@ -55,8 +55,6 @@ export default function Home() {
             setIsLoading(false);
         }
       } else {
-        // This part may run if sign-in fails. A more robust solution might
-        // listen for errors on the initiateAnonymousSignIn call itself.
         const errorUnsubscribe = auth.onIdTokenChanged(null, (error) => {
             console.error('Anonymous sign-in failed:', error);
             toast({
@@ -65,7 +63,7 @@ export default function Home() {
                 variant: 'destructive',
             });
             setIsLoading(false);
-            errorUnsubscribe(); // clean up this listener
+            errorUnsubscribe();
         });
       }
     });
@@ -77,11 +75,11 @@ export default function Home() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Rocket className="h-8 w-8" />
+            <Compass className="h-8 w-8" />
           </div>
-          <CardTitle className="text-3xl font-bold text-primary">Career Compass AI</CardTitle>
+          <CardTitle className="text-3xl font-bold text-primary">10th Grade Career Compass</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Your personalized career guidance starts here.
+            Confused about what to do after 10th? Let's find the right path for you.
           </CardDescription>
         </CardHeader>
         <CardContent>

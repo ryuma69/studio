@@ -4,8 +4,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'Career Compass AI',
-  description: 'Your personalized career guidance powered by AI.',
+  title: '10th Grade Career Compass',
+  description: 'Find your path after 10th grade with AI-powered guidance.',
 };
 
 export default function RootLayout({

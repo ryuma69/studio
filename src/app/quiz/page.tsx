@@ -7,38 +7,38 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, BrainCircuit, Users, Palette, Building, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Book, TestTube, Paintbrush, Calculator, Lightbulb } from 'lucide-react';
 
 const quizQuestions = [
   {
     id: 'q1',
-    icon: BrainCircuit,
-    question: 'When faced with a problem, you prefer to:',
-    options: ['Analyze it logically step-by-step', 'Brainstorm creative, out-of-the-box solutions'],
+    icon: TestTube,
+    question: 'Which subject do you enjoy more?',
+    options: ['Science (Physics, Chemistry, Biology)', 'Maths and Accountancy'],
   },
   {
     id: 'q2',
-    icon: Users,
-    question: 'You feel most energized when:',
-    options: ['Working alone in a quiet, focused space', 'Collaborating and bouncing ideas off a team'],
+    icon: Book,
+    question: 'You prefer to learn by:',
+    options: ['Reading theories and historical accounts', 'Doing hands-on experiments and building things'],
   },
   {
     id: 'q3',
-    icon: Palette,
-    question: 'Which of these sounds more appealing?',
-    options: ['Building a structured and efficient system', 'Designing something visually beautiful from scratch'],
+    icon: Paintbrush,
+    question: 'In your free time, you are more likely to:',
+    options: ['Sketch, paint, or write stories', 'Solve puzzles or play strategy games'],
   },
   {
     id: 'q4',
-    icon: Building,
-    question: 'You are more drawn to:',
-    options: ['Concrete facts, figures, and data', 'Abstract ideas, theories, and possibilities'],
+    icon: Calculator,
+    question: 'When planning a project, you focus on:',
+    options: ['The budget and economic viability', 'The creative vision and final look'],
   },
   {
     id: 'q5',
     icon: Lightbulb,
-    question: 'In your ideal job, you would value:',
-    options: ['Stability, security, and a clear career path', 'Flexibility, autonomy, and continuous learning'],
+    question: 'Your friends would describe you as more:',
+    options: ['Analytical and logical', 'Imaginative and artistic'],
   },
 ];
 
@@ -112,7 +112,7 @@ export default function QuizPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Icon className="h-8 w-8 text-primary" />
-                <CardTitle className="text-2xl font-bold">Personality Quiz</CardTitle>
+                <CardTitle className="text-2xl font-bold">Aptitude Quiz</CardTitle>
               </div>
               <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Go back">
                 <ArrowLeft className="h-5 w-5"/>
