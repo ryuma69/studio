@@ -15,11 +15,12 @@ import { ArrowRight, Bot, BookOpen, Map, FileText, ThumbsUp, ThumbsDown, Loader 
 
 import CareerRoadmap from './career-roadmap';
 import CollegeLocator from './college-locator';
+import { AnalyzeAptitudeInput } from '@/ai/ai-career-analysis';
 
 type AptitudeAnalysis = { recommendation: string; careerStreams: string[] };
 type QuizResults = { answers: string[], timeTaken: number };
 
-export default function DashboardClient({ aptitudeAnalysisAction }: { aptitudeAnalysisAction: (answers: string[]) => Promise<AptitudeAnalysis> }) {
+export default function DashboardClient({ aptitudeAnalysisAction }: { aptitudeAnalysisAction: (input: AnalyzeAptitudeInput) => Promise<AptitudeAnalysis> }) {
   const router = useRouter();
   const { toast } = useToast();
   const [isSimulating, startSimulatingTransition] = useTransition();
@@ -51,7 +52,7 @@ export default function DashboardClient({ aptitudeAnalysisAction }: { aptitudeAn
       setQuizResults(parsedResults);
       setPageState('analyzing');
       
-      aptitudeAnalysisAction(parsedResults.answers).then(analysisResult => {
+      aptitudeAnalysisAction(parsedResults).then(analysisResult => {
           setAnalysis(analysisResult);
           setPageState('results');
       });

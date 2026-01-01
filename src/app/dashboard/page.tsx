@@ -1,6 +1,6 @@
 'use server';
 
-import { analyzeAptitude } from '@/ai/ai-career-analysis';
+import { analyzeAptitude, type AnalyzeAptitudeInput } from '@/ai/ai-career-analysis';
 import DashboardClient from '@/components/dashboard-client';
 
 export default async function DashboardPage() {
