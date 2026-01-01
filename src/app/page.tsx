@@ -2,22 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, initiateAnonymousSignIn, useUser } from '@/firebase';
+import { useAuth, initiateAnonymousSignIn } from '@/firebase';
 import { updateProfile } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Compass, User as UserIcon } from 'lucide-react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { Compass, User as UserIcon, Loader2 } from 'lucide-react';
 
 export default function Home() {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleStart = async () => {
     if (!name.trim()) {
@@ -69,27 +73,33 @@ export default function Home() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="e.g., Jane Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleStart()}
-                  className="pl-10"
-                  aria-label="Full Name"
-                />
-              </div>
+          {!isMounted ? (
+            <div className="flex justify-center items-center h-36">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-            <Button onClick={handleStart} disabled={isLoading} className="w-full" size="lg">
-              {isLoading ? 'Starting...' : 'Start Your Journey'}
-            </Button>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="e.g., Jane Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleStart()}
+                    className="pl-10"
+                    aria-label="Full Name"
+                  />
+                </div>
+              </div>
+              <Button onClick={handleStart} disabled={isLoading} className="w-full" size="lg">
+                {isLoading ? 'Starting...' : 'Start Your Journey'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </main>
