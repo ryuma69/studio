@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, initiateAnonymousSignIn } from '@/firebase';
+import { useAuth, initiateAnonymousSignIn, useUser } from '@/firebase';
 import { updateProfile } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
