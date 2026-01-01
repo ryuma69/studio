@@ -12,13 +12,13 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const ConversationTurnSchema = z.object({
+const ConversationTurnSchema = z.object({
   role: z.enum(['user', 'model']),
   content: z.string(),
 });
 export type ConversationTurn = z.infer<typeof ConversationTurnSchema>;
 
-export const SimulateCareerStreamInputSchema = z.object({
+const SimulateCareerStreamInputSchema = z.object({
   careerStream: z.string().describe('The career stream to simulate (e.g., Software Engineering, Data Science).'),
   userPreferences: z.array(z.string()).describe('Array of user preferences derived from the personality quiz.'),
   conversationHistory: z.array(ConversationTurnSchema).optional().describe('The history of the conversation so far.'),
@@ -26,7 +26,7 @@ export const SimulateCareerStreamInputSchema = z.object({
 });
 export type SimulateCareerStreamInput = z.infer<typeof SimulateCareerStreamInputSchema>;
 
-export const SimulateCareerStreamOutputSchema = z.object({
+const SimulateCareerStreamOutputSchema = z.object({
   scenario: z.string().describe('A description of a simulated scenario or a question to the user.'),
   options: z.array(z.string()).optional().describe('An array of 2-3 short, distinct options for the user to choose from in response to the scenario. Only provide if the conversation is not over.'),
   isFinal: z.boolean().describe('A boolean indicating if this is the final turn of the simulation.'),
