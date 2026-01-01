@@ -2,19 +2,22 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth, signInAnonymously, updateProfile } from '@/lib/firebase';
+import { useAuth, initiateAnonymousSignIn } from '@/firebase';
+import { updateProfile } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Rocket, User as UserIcon } from 'lucide-react';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function Home() {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
 
   const handleStart = async () => {
     if (!name.trim()) {
@@ -27,27 +30,46 @@ export default function Home() {
     }
 
     setIsLoading(true);
-    try {
-      const userCredential = await signInAnonymously(auth);
-      if (userCredential.user) {
-        await updateProfile(userCredential.user, {
-          displayName: name,
+    initiateAnonymousSignIn(auth);
+    
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          await updateProfile(user, {
+            displayName: name,
+          });
+          toast({
+            title: `Welcome, ${name}!`,
+            description: 'Your anonymous session has started.',
+          });
+          router.push('/quiz');
+        } catch (error) {
+            console.error('Update profile failed:', error);
+            toast({
+                title: 'Update Failed',
+                description: 'Could not save your name. Please try again.',
+                variant: 'destructive',
+            });
+        } finally {
+            unsubscribe();
+            setIsLoading(false);
+        }
+      } else {
+        // This part may run if sign-in fails. A more robust solution might
+        // listen for errors on the initiateAnonymousSignIn call itself.
+        const errorUnsubscribe = auth.onIdTokenChanged(null, (error) => {
+            console.error('Anonymous sign-in failed:', error);
+            toast({
+                title: 'Authentication Failed',
+                description: 'Could not start your session. Please try again.',
+                variant: 'destructive',
+            });
+            setIsLoading(false);
+            errorUnsubscribe(); // clean up this listener
         });
-        toast({
-          title: `Welcome, ${name}!`,
-          description: 'Your anonymous session has started.',
-        });
-        router.push('/quiz');
       }
-    } catch (error) {
-      console.error('Anonymous sign-in failed:', error);
-      toast({
-        title: 'Authentication Failed',
-        description: 'Could not start your session. Please try again.',
-        variant: 'destructive',
-      });
-      setIsLoading(false);
-    }
+    });
+
   };
 
   return (

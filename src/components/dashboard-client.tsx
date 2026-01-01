@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, type User } from '@/lib/firebase';
-import { auth } from '@/lib/firebase';
+import { useUser } from '@/firebase';
 import { simulateCareerStream, type SimulateCareerStreamOutput } from '@/ai/flows/stream-explorer-simulation';
 import { generateDetailedReport, type DetailedReportOutput } from '@/ai/flows/detailed-report-generation';
 
@@ -26,7 +25,7 @@ export default function DashboardClient({ aptitudeAnalysisAction }: { aptitudeAn
   const [isSimulating, startSimulatingTransition] = useTransition();
   const [isReporting, startReportingTransition] = useTransition();
 
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isUserLoading } = useUser();
   const [quizResults, setQuizResults] = useState<QuizResults | null>(null);
   const [analysis, setAnalysis] = useState<AptitudeAnalysis | null>(null);
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
@@ -37,31 +36,31 @@ export default function DashboardClient({ aptitudeAnalysisAction }: { aptitudeAn
   const [pageState, setPageState] = useState<'loading' | 'analyzing' | 'results' | 'simulated'>('loading');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (!currentUser) {
+    if (isUserLoading) {
+      setPageState('loading');
+      return;
+    }
+    if (!user) {
         router.push('/');
         return;
-      }
-      setUser(currentUser);
+    }
 
-      const results = localStorage.getItem('quizResults');
-      if (results) {
-        const parsedResults = JSON.parse(results) as QuizResults;
-        setQuizResults(parsedResults);
-        setPageState('analyzing');
-        
-        aptitudeAnalysisAction(parsedResults.answers).then(analysisResult => {
-            setAnalysis(analysisResult);
-            setPageState('results');
-        });
-        
-      } else {
-        toast({ title: "Quiz data not found.", description: "Redirecting you to the quiz.", variant: "destructive" });
-        router.push('/quiz');
-      }
-    });
-    return () => unsubscribe();
-  }, [router, toast, aptitudeAnalysisAction]);
+    const results = localStorage.getItem('quizResults');
+    if (results) {
+      const parsedResults = JSON.parse(results) as QuizResults;
+      setQuizResults(parsedResults);
+      setPageState('analyzing');
+      
+      aptitudeAnalysisAction(parsedResults.answers).then(analysisResult => {
+          setAnalysis(analysisResult);
+          setPageState('results');
+      });
+      
+    } else {
+      toast({ title: "Quiz data not found.", description: "Redirecting you to the quiz.", variant: "destructive" });
+      router.push('/quiz');
+    }
+  }, [user, isUserLoading, router, toast, aptitudeAnalysisAction]);
 
 
   const handleSelectStream = (stream: string) => {

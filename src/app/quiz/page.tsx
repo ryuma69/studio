@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, type User } from '@/lib/firebase';
-import { auth } from '@/lib/firebase';
+import { useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -46,27 +45,20 @@ const quizQuestions = [
 type Answers = { [key: string]: string };
 
 export default function QuizPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isUserLoading } = useUser();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [startTime, setStartTime] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        if(!startTime) {
-          setStartTime(Date.now());
-        }
-      } else {
-        router.push('/');
-      }
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
-  }, [router, startTime]);
+    if (!isUserLoading && !user) {
+      router.push('/');
+    }
+    if (user && !startTime) {
+      setStartTime(Date.now());
+    }
+  }, [user, isUserLoading, router, startTime]);
 
   const handleAnswer = (option: string) => {
     const newAnswers = { ...answers, [quizQuestions[currentQuestionIndex].id]: option };
@@ -94,7 +86,7 @@ export default function QuizPage() {
     }
   }
 
-  if (isLoading || !user) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-4">
         <div className="w-full max-w-2xl space-y-4">
