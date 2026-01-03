@@ -13,7 +13,7 @@ const quizQuestions = [
   {
     id: 'q1',
     icon: TestTube,
-    question: 'Ocean' is to 'Water' as 'Desert' is to...?",
+    question: "'Ocean' is to 'Water' as 'Desert' is to...?",
     options: ['Cactus', 'Sand', 'Heat', 'Camel'],
   },
   {
