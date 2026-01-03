@@ -23,8 +23,14 @@ const AnalyzeAptitudeOutputSchema = z.object({
 });
 export type AnalyzeAptitudeOutput = z.infer<typeof AnalyzeAptitudeOutputSchema>;
 
-export async function analyzeAptitude(input: AnalyzeAptitudeInput): Promise<AnalyzeAptitudeOutput> {
-  return analyzeAptitudeFlow(input);
+export type AptitudeAnalysis = { recommendation: string; careerStreams: string[] };
+
+export async function analyzeAptitude(input: AnalyzeAptitudeInput): Promise<AptitudeAnalysis> {
+  const output = await analyzeAptitudeFlow(input);
+  return {
+    recommendation: output.careerRecommendation,
+    careerStreams: output.careerStreams,
+  };
 }
 
 const analyzeAptitudePrompt = ai.definePrompt({
