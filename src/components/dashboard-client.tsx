@@ -140,7 +140,7 @@ export default function DashboardClient({
     html2canvas(chartElement, {
       scale: 3,
       useCORS: true,
-      backgroundColor: '#ffffff',
+      backgroundColor: '#F0FAF5',
       onclone: (clonedDoc) => {
         const content = clonedDoc.querySelector('.mx-auto.aspect-square');
         if (content) {
