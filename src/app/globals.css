@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -24,48 +25,26 @@
     --border: 147 20% 88%;
     --input: 147 20% 88%;
     --ring: 147 48% 36%;
-    --radius: 0.5rem;
     --chart-1: 147 48% 36%;
     --chart-2: 180 100% 25%;
     --chart-3: 147 30% 50%;
     --chart-4: 180 50% 40%;
     --chart-5: 147 20% 60%;
   }
-
-  .dark {
-    --background: 147 20% 10%;
-    --foreground: 147 25% 90%;
-    --card: 147 20% 10%;
-    --card-foreground: 147 25% 90%;
-    --popover: 147 20% 10%;
-    --popover-foreground: 147 25% 90%;
-    --primary: 147 50% 70%;
-    --primary-foreground: 147 48% 20%;
-    --secondary: 147 20% 20%;
-    --secondary-foreground: 147 25% 90%;
-    --muted: 147 20% 20%;
-    --muted-foreground: 147 15% 60%;
-    --accent: 180 100% 35%;
-    --accent-foreground: 180 50% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 147 20% 25%;
-    --input: 147 20% 25%;
-    --ring: 147 50% 70%;
-    --chart-1: 147 50% 70%;
-    --chart-2: 180 100% 35%;
-    --chart-3: 147 40% 50%;
-    --chart-4: 180 60% 40%;
-    --chart-5: 147 30% 60%;
-  }
 }
 
-@layer base {
-  * {
-    @apply border-border;
+/* The Only Correct Way to Print - Final Version */
+@media print {
+  /* Hide EVERYTHING on the page by default */
+  body > *:not(#printable-report) {
+    display: none !important;
   }
-  body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-body);
+
+  /* Make ONLY the #printable-report visible */
+  #printable-report {
+    display: block !important;
+    position: static !important;
+    margin: 0;
+    padding: 0;
   }
 }

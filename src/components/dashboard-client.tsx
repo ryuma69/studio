@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import html2canvas from 'html2canvas';
 import {
   simulateCareerStream,
   type SimulateCareerStreamInput,
@@ -16,15 +17,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
 import { ArrowRight, Bot, BookOpen, Map, FileText, ThumbsUp, ThumbsDown, Loader, LogOut, Sparkles } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 import CareerRoadmap, { allCareerStreams } from './career-roadmap';
 import CollegeLocator from './college-locator';
+import DetailedReportChart from './detailed-report-chart';
 import { AnalyzeAptitudeInput } from '@/ai/ai-career-analysis';
 
-type AptitudeAnalysis = { recommendation: string; careerStreams: string[] };
+type AptitudeAnalysis = { careerRecommendation: string; careerStreams: string[] };
 type QuizResults = { answers: string[]; timeTaken: number };
 
 export default function DashboardClient({
@@ -33,7 +34,6 @@ export default function DashboardClient({
   aptitudeAnalysisAction: (input: AnalyzeAptitudeInput) => Promise<AptitudeAnalysis>;
 }) {
   const router = useRouter();
-  const { toast } = useToast();
   const [isSimulating, startSimulatingTransition] = useTransition();
   const [isReporting, startReportingTransition] = useTransition();
 
@@ -72,10 +72,10 @@ export default function DashboardClient({
         }
       );
     } else {
-      toast({ title: 'Quiz data not found.', description: 'Redirecting you to the quiz.', variant: 'destructive' });
+      console.error('Quiz data not found.');
       router.push('/quiz');
     }
-  }, [user, isUserLoading, router, toast, aptitudeAnalysisAction]);
+  }, [user, isUserLoading, router, aptitudeAnalysisAction]);
 
   const handleSelectStream = (stream: string) => {
     setSelectedStream(stream);
@@ -105,11 +105,7 @@ export default function DashboardClient({
 
         setPageState('simulated');
       } catch (e) {
-        toast({
-          title: 'Simulation Failed',
-          description: 'Could not generate simulation. Please try again.',
-          variant: 'destructive',
-        });
+        console.error('Simulation Failed', e);
       }
     });
   };
@@ -129,8 +125,88 @@ export default function DashboardClient({
         });
         setFinalReport(result);
       } catch (e) {
-        toast({ title: 'Report Failed', description: 'Could not generate report. Please try again.', variant: 'destructive' });
+        console.error('Report Failed', e);
       }
+    });
+  };
+  
+  const handleDownloadReport = () => {
+    const chartElement = document.getElementById('report-chart-container');
+    if (!chartElement || !finalReport || !selectedStream) {
+      console.error("Report data or chart element not found for PDF generation.");
+      return;
+    }
+
+    html2canvas(chartElement, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      onclone: (clonedDoc) => {
+        const content = clonedDoc.querySelector('.mx-auto.aspect-square');
+        if (content) {
+          (content as HTMLElement).style.maxHeight = 'none';
+          (content as HTMLElement).style.width = '450px';
+          (content as HTMLElement).style.height = '450px';
+        }
+      }
+    }).then(canvas => {
+      const chartImgData = canvas.toDataURL('image/png', 1.0);
+      
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert("Could not open a new window for printing. Please check your browser's popup settings.");
+        return;
+      }
+
+      const reportHTML = `
+        <html>
+          <head>
+            <title>Detailed Career Report for ${selectedStream}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 40px; line-height: 1.6; color: #333; }
+              .container { max-width: 800px; margin: 0 auto; }
+              h1 { text-align: center; font-size: 28px; margin-bottom: 20px; color: #000; }
+              h2 { font-size: 22px; margin-top: 40px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; color: #000; }
+              img { max-width: 100%; height: auto; display: block; margin: 30px auto; border: 1px solid #ddd; border-radius: 8px; }
+              ul { padding-left: 20px; }
+              li { margin-bottom: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>Detailed Career Report for ${selectedStream}</h1>
+
+              <h2>Aptitude Analysis</h2>
+              <img src="${chartImgData}" alt="Aptitude Scores Chart" />
+
+              <h2>Strengths</h2>
+              <p>${finalReport.strengths}</p>
+
+              <h2>Suitability for ${selectedStream}</h2>
+              <p>${finalReport.suitability}</p>
+
+              <h2>Future Job Prospects</h2>
+              <ul>
+                ${finalReport.jobProspects.map(job => `<li>${job}</li>`).join('')}
+              </ul>
+            </div>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.write(reportHTML);
+      printWindow.document.close();
+      printWindow.focus();
+
+      setTimeout(() => {
+        try {
+          printWindow.print();
+          printWindow.close();
+        } catch (e) {
+          console.error("Printing failed:", e);
+          printWindow.close();
+        }
+      }, 500);
     });
   };
 
@@ -138,7 +214,6 @@ export default function DashboardClient({
     await signOut(auth);
     localStorage.removeItem('quizResults');
     router.push('/');
-    toast({ title: 'Signed Out', description: 'You have been signed out.' });
   };
 
   const recommendedStreams = analysis?.careerStreams || [];
@@ -181,7 +256,7 @@ export default function DashboardClient({
               <CardTitle>AI Recommendation</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">{analysis?.recommendation}</p>
+              <p className="text-muted-foreground">{analysis?.careerRecommendation}</p>
             </CardContent>
           </Card>
 
@@ -330,7 +405,7 @@ export default function DashboardClient({
                           <FileText className="mr-2" /> {isReporting ? 'Generating...' : 'Get Detailed Report'}
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
+                      <DialogContent id="detailed-report-dialog-content" className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Your Detailed Career Report</DialogTitle>
                         </DialogHeader>
@@ -342,10 +417,25 @@ export default function DashboardClient({
                           </div>
                         )}
                         {finalReport && (
-                          <div
-                            className="prose prose-sm dark:prose-invert max-h-[60vh] overflow-y-auto p-1"
-                            dangerouslySetInnerHTML={{ __html: finalReport.report.replace(/\n/g, '<br />') }}
-                          />
+                            <div className="p-4">
+                                <div id="report-chart-container">
+                                    <DetailedReportChart data={finalReport.aptitudeScores} onDownload={handleDownloadReport} />
+                                </div>
+                                <div className="mt-4">
+                                    <h3 className="font-semibold">Strengths:</h3>
+                                    <p className="text-sm text-muted-foreground">{finalReport.strengths}</p>
+                                </div>
+                                <div className="mt-4">
+                                    <h3 className="font-semibold">Suitability for {selectedStream}:</h3>
+                                    <p className="text-sm text-muted-foreground">{finalReport.suitability}</p>
+                                </div>
+                                <div className="mt-4">
+                                    <h3 className="font-semibold">Future Job Prospects:</h3>
+                                    <ul className="list-disc list-inside text-sm text-muted-foreground">
+                                        {finalReport.jobProspects.map((job, index) => <li key={`${job}-${index}`}>{job}</li>)}
+                                    </ul>
+                                </div>
+                            </div>
                         )}
                       </DialogContent>
                     </Dialog>

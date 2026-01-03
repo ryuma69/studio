@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  env: {
-    GEOAPIFY_API_KEY: 'your_geoapify_api_key',
-  },
+    // Your Next.js configuration options...    
 };
 
 module.exports = nextConfig;

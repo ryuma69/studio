@@ -1,80 +1,70 @@
 'use client';
 
-import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
 
-// Mock data, as we don't have a real college API
+// Mock data for colleges - in a real app, this would come from an API
 const MOCK_COLLEGES = [
-  { lat: 0.02, lng: 0.01, name: 'University of Innovation' },
-  { lat: -0.02, lng: -0.03, name: 'Creative Arts College' },
-  { lat: 0.01, lng: -0.02, name: 'Institute of Technology' },
+  { name: 'Harvard University', lat: 0.02, lng: -0.02 },
+  { name: 'Stanford University', lat: -0.015, lng: 0.025 },
+  { name: 'MIT', lat: 0.01, lng: 0.01 },
+  { name: 'UC Berkeley', lat: -0.01, lng: -0.025 },
 ];
 
-export default function CollegeLocator() {
-  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
-  const { toast } = useToast();
+const Map = ({ center }: { center: { lat: number, lng: number } | null }) => {
+  const [mapUrl, setMapUrl] = useState('');
 
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCenter({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        () => {
-          toast({
-            title: 'Location Access Denied',
-            description: "Showing a default location. Allow location access for better results.",
-          });
-          setCenter({ lat: 37.7749, lng: -122.4194 }); // Default to SF
-        }
-      );
-    } else {
-        toast({
-            title: 'Geolocation Not Supported',
-            description: "Your browser doesn't support geolocation. Showing default location.",
-        });
-        setCenter({ lat: 37.7749, lng: -122.4194 }); // Default to SF
+    if (center && process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY) {
+      const apiKey = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY;
+      const markers = MOCK_COLLEGES.map(college => `lonlat:${center.lng + college.lng},${center.lat + college.lat};color:%23ff0000;size:medium`).join('|');
+      const mapUrl = `https://maps.geoapify.com/v1/staticmap?style=osm-carto&width=600&height=400&center=lonlat:${center.lng},${center.lat}&zoom=14&marker=${markers}&apiKey=${apiKey}`;
+      setMapUrl(mapUrl);
     }
-  }, [toast]);
+  }, [center]);
 
-  if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
-      return (
-        <div className="flex items-center justify-center h-full bg-destructive/10 text-destructive rounded-md p-4">
-            Google Maps API Key is not configured. Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your environment variables.
-        </div>
-      )
+  if (!process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY) {
+    return (
+      <div className="flex items-center justify-center h-full bg-destructive/10 text-destructive rounded-md p-4">
+          Geoapify API Key is not configured. Please add NEXT_PUBLIC_GEOAPIFY_API_KEY to your environment variables.
+      </div>
+    )
   }
 
   if (!center) {
     return <Skeleton className="h-full w-full" />;
   }
 
-  const collegeMarkers = MOCK_COLLEGES.map(college => ({
-      ...college,
-      lat: center.lat + college.lat,
-      lng: center.lng + college.lng,
-  }))
+  return mapUrl ? <img src={mapUrl} alt="Map of colleges" className="w-full h-full object-cover rounded-md" /> : <Skeleton className="h-full w-full" />;
+};
+
+export default function CollegeLocator() {
+  const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error("Error getting user location: ", error);
+          // Fallback to a default location if user denies permission
+          setUserLocation({ lat: 37.7749, lng: -122.4194 });
+        }
+      );
+    } else {
+      // Fallback for browsers that don't support geolocation
+      setUserLocation({ lat: 37.7749, lng: -122.4194 });
+    }
+  }, []);
 
   return (
-    <div className="h-full w-full rounded-lg overflow-hidden border grow">
-        <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}>
-            <Map
-                center={center}
-                zoom={11}
-                mapId="career-compass-map"
-                gestureHandling={'greedy'}
-                disableDefaultUI={true}
-            >
-                {collegeMarkers.map(college => (
-                    <Marker key={college.name} position={college} />
-                ))}
-            </Map>
-        </APIProvider>
+    <div className="w-full h-96 rounded-md overflow-hidden">
+      <Map center={userLocation} />
     </div>
   );
 }

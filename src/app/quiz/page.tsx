@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -13,49 +13,49 @@ const quizQuestions = [
   {
     id: 'q1',
     icon: TestTube,
-    question: 'Ocean' is to 'Water' as 'Desert' is to...?",
+    question: "'Ocean' is to 'Water' as 'Desert' is to...?",
     options: ['Cactus', 'Sand', 'Heat', 'Camel'],
   },
   {
     id: 'q2',
     icon: Calculator,
-    question: ' If a notebook and a pencil cost $1.10 in total, and the notebook costs $1.00 more than the pencil, how much does the pencil cost?',
+    question: 'If a notebook and a pencil cost $1.10 in total, and the notebook costs $1.00 more than the pencil, how much does the pencil cost?',
     options: ['$0.10', '$0.05', '$0.01', '$0.15'],
   },
   {
     id: 'q3',
     icon: Paintbrush,
-    question: ' You have a square piece of paper. You fold it in half once, then in half again to make a smaller square. If you cut off one corner of the folded square and then unfold it, how many holes will be in the paper?',
+    question: 'You have a square piece of paper. You fold it in half once, then in half again to make a smaller square. If you cut off one corner of the folded square and then unfold it, how many holes will be in the paper?',
     options: ['1', '2', '4', '8'],
   },
   {
     id: 'q4',
     icon: Lightbulb,
-    question: ' If today is Monday, what day will it be in 63 days?',
+    question: 'If today is Monday, what day will it be in 63 days?',
     options: ['Monday', 'Tuesday', 'Sunday', 'Wednesday'],
   },
   {
     id: 'q5',
     icon: TestTube,
-    question: ' Which number comes next? 1, 2, 4, 7, 11, ...',
+    question: 'Which number comes next? 1, 2, 4, 7, 11, ...',
     options: ['14', '15', '16', '17'],
   },
   {
     id: 'q6',
     icon: TestTube,
-    question: " If Gear A is turning clockwise and is touching Gear B, which way is Gear B turning?",
+    question: "If Gear A is turning clockwise and is touching Gear B, which way is Gear B turning?",
     options: ['Clockwise', 'Counter-clockwise', "It won't move"],
   },
   {
     id: 'q7',
     icon: Book,
-    question: " Which word is the most 'different' from the others?",
+    question: "Which word is the most 'different' from the others?",
     options: ['Happy', 'Excited', 'Cheerful', 'Calm'],
   },
   {
     id: 'q8',
     icon: Book,
-    question: ' A farmer has 17 sheep. All but 9 run away. How many sheep are left?',
+    question: 'A farmer has 17 sheep. All but 9 run away. How many sheep are left?',
     options: ['8', '9', '17', '0'],
   },
 ];

@@ -2,60 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, initiateAnonymousSignIn } from '@/firebase';
-import { updateProfile } from 'firebase/auth';
+import { useAuth, initiateGoogleSignIn } from '@/firebase'; // Simplified and corrected import
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Compass, User as UserIcon, Loader2 } from 'lucide-react';
+import { Compass, Loader2 } from 'lucide-react';
 
 export default function Home() {
-  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();
   const auth = useAuth();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const handleStart = async () => {
-    if (!name.trim()) {
-      toast({
-        title: 'Name Required',
-        description: 'Please enter your full name to begin.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    
     try {
-      const userCredential = await initiateAnonymousSignIn(auth);
+      const userCredential = await initiateGoogleSignIn(auth);
       if (userCredential.user) {
-        await updateProfile(userCredential.user, {
-          displayName: name,
-        });
-        toast({
-          title: `Welcome, ${name}!`,
-          description: 'Your anonymous session has started.',
-        });
         router.push('/quiz');
       } else {
         throw new Error("Sign in did not return a user.");
       }
     } catch (error) {
-      console.error('Anonymous sign-in failed:', error);
-      toast({
-          title: 'Authentication Failed',
-          description: 'Could not start your session. Please try again.',
-          variant: 'destructive',
-      });
+      console.error('Google sign-in failed:', error);
       setIsLoading(false);
     }
   };
@@ -79,24 +51,8 @@ export default function Home() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="e.g., Jane Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleStart()}
-                    className="pl-10"
-                    aria-label="Full Name"
-                  />
-                </div>
-              </div>
-              <Button onClick={handleStart} disabled={isLoading} className="w-full" size="lg">
-                {isLoading ? 'Starting...' : 'Start Your Journey'}
+              <Button onClick={handleGoogleSignIn} disabled={isLoading} className="w-full" size="lg">
+                {isLoading ? 'Starting...' : 'Sign in with Google'}
               </Button>
             </div>
           )}
