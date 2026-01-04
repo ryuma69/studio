@@ -26,7 +26,8 @@ import DetailedReportChart from './detailed-report-chart';
 import { AnalyzeAptitudeInput } from '@/ai/ai-career-analysis';
 
 type AptitudeAnalysis = { careerRecommendation: string; careerStreams: string[] };
-type QuizResults = { answers: string[]; timeTaken: number };
+type QuizAnswer = { id: string; question: string; answer: string };
+type QuizResults = { answers: QuizAnswer[]; timeTaken: number };
 
 export default function DashboardClient({
   aptitudeAnalysisAction,
@@ -92,7 +93,7 @@ export default function DashboardClient({
       try {
         const input: SimulateCareerStreamInput = {
           careerStream: selectedStream,
-          userPreferences: quizResults.answers,
+          userPreferences: quizResults.answers.map(a => a.answer),
           conversationHistory: simulationHistory,
           userResponse: userResponse,
         };

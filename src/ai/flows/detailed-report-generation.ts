@@ -3,10 +3,16 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
+const QAEntrySchema = z.object({
+  id: z.string().describe('Question id'),
+  question: z.string().describe('Question text'),
+  answer: z.string().describe('Selected answer text'),
+});
+
 const DetailedReportInputSchema = z.object({
   careerStream: z.string().describe('The name of the career stream.'),
   userFeedback: z.string().describe('The user feedback on the career stream.'),
-  quizAnswers: z.array(z.string()).describe('The answers from the personality quiz.'),
+  quizAnswers: z.array(QAEntrySchema).describe('The quiz questions and selected answers.'),
 });
 
 export type DetailedReportInput = z.infer<typeof DetailedReportInputSchema>;
@@ -34,7 +40,12 @@ const prompt = ai.definePrompt({
   prompt: `You are a career counselor providing a JSON output for a 10th-grade student's career report.
 
 The student is interested in the '{{{careerStream}}}' stream.
-Their quiz answers were: {{{quizAnswers}}}.
+Their quiz responses were:
+{{#each quizAnswers}}
+- ID: {{{this.id}}}
+  Question: {{{this.question}}}
+  Answer: {{{this.answer}}}
+{{/each}}
 The quiz covers logical reasoning, spatial awareness, verbal skills, and creativity.
 Their feedback on a simulation was: {{{userFeedback}}}.
 

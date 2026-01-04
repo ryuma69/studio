@@ -11,8 +11,14 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+const QuestionAnswerSchema = z.object({
+  id: z.string().describe('Question id.'),
+  question: z.string().describe('Question text.'),
+  answer: z.string().describe('Selected answer text.'),
+});
+
 const AnalyzeAptitudeInputSchema = z.object({
-  answers: z.array(z.string()).describe('An array of strings representing the user’s answers to the personality quiz.'),
+  answers: z.array(QuestionAnswerSchema).describe('An array of objects representing the quiz questions and selected answers.'),
   timeTaken: z.number().describe('The time taken to complete the quiz, in seconds.'),
 });
 export type AnalyzeAptitudeInput = z.infer<typeof AnalyzeAptitudeInputSchema>;
@@ -40,9 +46,14 @@ const analyzeAptitudePrompt = ai.definePrompt({
   input: {schema: AnalyzeAptitudeInputSchema},
   output: {schema: AnalyzeAptitudeOutputSchema},
   prompt: `You are an expert student counselor for 10th-grade students in India.
-Analyze the student's quiz answers to recommend a primary academic stream (Science, Commerce, or Arts) for their 11th and 12th grade.
+Analyze the student's quiz responses to recommend a primary academic stream (Science, Commerce, or Arts) for their 11th and 12th grade.
 
-Quiz Answers: {{{answers}}}
+Quiz Responses:
+{{#each answers}}
+- ID: {{{this.id}}}
+  Question: {{{this.question}}}
+  Answer: {{{this.answer}}}
+{{/each}}
 
 Based on this information, provide a JSON object with:
 - careerRecommendation: A personalized paragraph explaining which stream fits them best and why.

@@ -88,7 +88,11 @@ export default function QuizPage() {
       const endTime = Date.now();
       const timeTaken = Math.round((endTime - (startTime ?? endTime)) / 1000);
       
-      const answersArray = quizQuestions.map(q => newAnswers[q.id] || '');
+      const answersArray = quizQuestions.map(q => ({
+        id: q.id,
+        question: q.question,
+        answer: newAnswers[q.id] || ''
+      }));
 
       localStorage.setItem('quizResults', JSON.stringify({ answers: answersArray, timeTaken }));
       
