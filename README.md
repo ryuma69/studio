@@ -3,6 +3,8 @@
 VidhyaSarathi is a career guidance prototype that helps students **explore academic streams based on aptitude**, not just interest or marks.
 
 Unlike traditional career guidance systems that only *recommend* streams, VidhyaSarathi focuses on **Stream Exploration** by allowing students to **experience realistic scenarios** from different streams before making a decision.
+
+
 mvp link : https://studio-rust-eta.vercel.app
 ---
 
