@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase/provider';
+import { useUser, useAuth } from '@/firebase/provider';
+import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -12,11 +13,23 @@ import {
     CardContent,
     CardFooter
 } from '@/components/ui/card';
-import { Brain, Map, LineChart, ArrowRight, Sparkles } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter
+} from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Brain, Map, LineChart, ArrowRight, Sparkles, User, LogOut, Settings, Edit } from 'lucide-react';
 
 export default function HomePage() {
     const { user, isUserLoading } = useUser();
+    const auth = useAuth();
     const router = useRouter();
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     useEffect(() => {
         if (!isUserLoading && !user) {
@@ -24,13 +37,62 @@ export default function HomePage() {
         }
     }, [user, isUserLoading, router]);
 
+    const handleSignOut = async () => {
+        if (auth) {
+            await signOut(auth);
+            router.push('/');
+        }
+    };
+
     if (isUserLoading) {
         return null; // Or a loading spinner
     }
 
     return (
-        <main className="min-h-screen bg-background p-4 md:p-8 animate-in fade-in duration-500">
-            <div className="max-w-5xl mx-auto space-y-12">
+        <main className="min-h-screen bg-background p-4 md:p-8 animate-in fade-in duration-500 relative">
+            {/* Profile Button (Top Right) */}
+            <div className="absolute top-4 right-4 md:top-8 md:right-8 z-10">
+                <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-2 border-primary/20 shadow-sm hover:shadow-md">
+                            <Avatar className="h-10 w-10">
+                                <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User'} />
+                                <AvatarFallback className="bg-primary/5 text-primary">
+                                    <User className="h-6 w-6" />
+                                </AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>My Profile</DialogTitle>
+                            <DialogDescription>
+                                Manage your account settings and preferences.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col items-center gap-4 py-4">
+                            <Avatar className="h-24 w-24 border-4 border-background shadow-xl">
+                                <AvatarImage src={user?.photoURL || undefined} />
+                                <AvatarFallback className="text-2xl bg-muted"><User className="h-12 w-12" /></AvatarFallback>
+                            </Avatar>
+                            <div className="text-center space-y-1">
+                                <h3 className="text-xl font-semibold">{user?.displayName || 'Career Explorer'}</h3>
+                                <p className="text-sm text-muted-foreground">{user?.email}</p>
+                            </div>
+                        </div>
+                        <div className="grid gap-3">
+                            <Button variant="outline" className="w-full justify-start" onClick={() => router.push('/profile-setup')}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit Profile Details
+                            </Button>
+                            <Button variant="destructive" className="w-full justify-start" onClick={handleSignOut}>
+                                <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            <div className="max-w-5xl mx-auto space-y-12 pt-8">
                 {/* Hero Section */}
                 <section className="text-center space-y-6 py-12">
                     <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-4">

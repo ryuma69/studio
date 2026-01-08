@@ -2,31 +2,55 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, initiateGoogleSignIn } from '@/firebase'; // Simplified and corrected import
+import { useAuth, useUser, initiateGoogleSignIn, useFirestore } from '@/firebase'; // Simplified and corrected import
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Compass, Loader2 } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const handleGoogleSignIn = async () => {
+  const checkProfileAndRedirect = async (uid: string) => {
+    if (!firestore) return;
+    try {
+      const userDoc = await getDoc(doc(firestore, 'users', uid));
+      if (userDoc.exists()) {
+        router.push('/home');
+      } else {
+        router.push('/profile-setup');
+      }
+    } catch (error) {
+      console.error("Error checking profile:", error);
+      router.push('/profile-setup');
+    }
+  };
+
+  const handleAction = async () => {
+    setIsLoading(true);
+    if (user) {
+      await checkProfileAndRedirect(user.uid);
+      return;
+    }
+
     if (!auth) {
       console.error("Auth is not ready yet.");
       return;
     }
-    setIsLoading(true);
+
     try {
       const userCredential = await initiateGoogleSignIn(auth);
       if (userCredential.user) {
-        router.push('/profile-setup');
+        await checkProfileAndRedirect(userCredential.user.uid);
       } else {
         throw new Error("Sign in did not return a user.");
       }
@@ -49,14 +73,14 @@ export default function Home() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!isMounted ? (
+          {!isMounted || isUserLoading ? (
             <div className="flex justify-center items-center h-36">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
             <div className="space-y-4">
-              <Button onClick={handleGoogleSignIn} disabled={isLoading || !auth} className="w-full" size="lg">
-                {isLoading ? 'Starting...' : 'Sign in with Google'}
+              <Button onClick={handleAction} disabled={isLoading || !auth} className="w-full" size="lg">
+                {isLoading ? 'Starting...' : user ? `Continue as ${user.displayName}` : 'Sign in with Google'}
               </Button>
             </div>
           )}

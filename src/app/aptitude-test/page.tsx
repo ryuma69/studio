@@ -72,6 +72,8 @@ export default function AptitudeTestPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
 
+    const [isSeeding, setIsSeeding] = useState(false);
+
     useEffect(() => {
         if (!isUserLoading && !user) {
             router.push('/');
@@ -80,6 +82,25 @@ export default function AptitudeTestPage() {
             setStartTime(Date.now());
         }
     }, [user, isUserLoading, router, startTime]);
+
+    // Seed Questions to Firestore (One-time logic)
+    useEffect(() => {
+        const seedQuestions = async () => {
+            if (user && firestore && !isSeeding) {
+                setIsSeeding(true);
+                try {
+                    for (const q of quizQuestions) {
+                        const { icon, ...qData } = q;
+                        await setDoc(doc(firestore, 'questions', q.id), qData, { merge: true });
+                    }
+                    console.log("Questions seeded to Firestore");
+                } catch (e) {
+                    console.error("Error seeding questions:", e);
+                }
+            }
+        };
+        seedQuestions();
+    }, [user, firestore]);
 
     const handleAnswer = async (option: string) => {
         const newAnswers = { ...answers, [quizQuestions[currentQuestionIndex].id]: option };

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser } from '@/firebase';
+import { doc, setDoc, addDoc, collection, getDocs } from 'firebase/firestore';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import html2canvas from 'html2canvas';
 import {
@@ -16,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowRight, Bot, BookOpen, Map, FileText, ThumbsUp, ThumbsDown, Loader, LogOut, Sparkles } from 'lucide-react';
+import { ArrowRight, Bot, BookOpen, Map as MapIcon, FileText, ThumbsUp, ThumbsDown, Loader, LogOut, Sparkles } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 import CareerRoadmap, { allCareerStreams } from './career-roadmap';
@@ -38,6 +39,7 @@ export default function DashboardClient({
 
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore(); // Hook
   const [quizResults, setQuizResults] = useState<QuizResults | null>(null);
   const [analysis, setAnalysis] = useState<AptitudeAnalysis | null>(null);
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
@@ -63,17 +65,59 @@ export default function DashboardClient({
       setQuizResults(parsedResults);
       setPageState('analyzing');
 
-      aptitudeAnalysisAction({ answers: parsedResults.answers, timeTaken: parsedResults.timeTaken }).then(
-        analysisResult => {
+      // Fetch questions from DB to provide context
+      const fetchQuestionsAndAnalyze = async () => {
+        if (!firestore) return;
+
+        try {
+          const questionsSnapshot = await getDocs(collection(firestore, 'questions'));
+          const questionsMap = new Map();
+          questionsSnapshot.forEach(doc => {
+            questionsMap.set(doc.id, doc.data().question);
+          });
+
+          // Reconstruct detailed answers. 
+          // Assuming answers array corresponds to q1, q2... q8 in order as per original quiz
+          // We need to match the index to the ID. q1 is index 0.
+          const detailedAnswers = parsedResults.answers.map((ans, idx) => {
+            const qId = `q${idx + 1}`;
+            return {
+              question: questionsMap.get(qId) || `Question ${idx + 1}`,
+              answer: ans
+            };
+          });
+
+          const analysisResult = await aptitudeAnalysisAction({
+            detailedAnswers,
+            timeTaken: parsedResults.timeTaken
+          });
+
           setAnalysis(analysisResult);
           setPageState('results');
+
+          // Persist Analysis
+          if (user) {
+            await setDoc(doc(firestore, 'users', user.uid), {
+              careerAnalysis: {
+                ...analysisResult,
+                analyzedAt: new Date().toISOString()
+              }
+            }, { merge: true });
+          }
+
+        } catch (err) {
+          console.error("Error during analysis flow:", err);
+          // Fallback or error state?
         }
-      );
+      };
+
+      fetchQuestionsAndAnalyze();
+
     } else {
       console.error('Quiz data not found.');
       router.push('/quiz');
     }
-  }, [user, isUserLoading, router, aptitudeAnalysisAction]);
+  }, [user, isUserLoading, firestore, router, aptitudeAnalysisAction]);
 
   const handleSelectStream = (stream: string) => {
     setSelectedStream(stream);
@@ -114,6 +158,20 @@ export default function DashboardClient({
           quizAnswers: quizResults.answers,
         });
         setFinalReport(result);
+
+        // Persist Report
+        if (firestore && user) {
+          try {
+            await addDoc(collection(firestore, 'users', user.uid, 'reports'), {
+              stream: selectedStream,
+              report: result,
+              generatedAt: new Date().toISOString()
+            });
+          } catch (err) {
+            console.error("Failed to save report to DB", err);
+          }
+        }
+
       } catch (e) {
         console.error('Report Failed', e);
       }
@@ -201,11 +259,9 @@ export default function DashboardClient({
   };
 
   const handleExit = async () => {
-    if (auth) {
-      await signOut(auth);
-    }
+    // Just clear local session state, don't sign out user from Firebase
     localStorage.removeItem('quizResults');
-    router.push('/');
+    router.push('/home');
   };
 
   const recommendedStreams = analysis?.careerStreams || [];
@@ -407,7 +463,7 @@ export default function DashboardClient({
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline" className="w-full">
-                          <Map className="mr-2" /> Find Nearby Colleges
+                          <MapIcon className="mr-2" /> Find Nearby Colleges
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-3xl h-[90vh] md:h-[550px] flex flex-col">
