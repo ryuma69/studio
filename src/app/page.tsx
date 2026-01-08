@@ -26,7 +26,7 @@ export default function Home() {
     try {
       const userCredential = await initiateGoogleSignIn(auth);
       if (userCredential.user) {
-        router.push('/quiz');
+        router.push('/profile-setup');
       } else {
         throw new Error("Sign in did not return a user.");
       }
