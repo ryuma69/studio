@@ -1,22 +1,34 @@
-import {genkit} from 'genkit';
-import {config} from 'dotenv';
+import { genkit } from 'genkit';
+import { config } from 'dotenv';
 
 config();
 
-// Dynamically load the google-genai plugin only when an API key is present.
-// This prevents a hard crash at module evaluation if GEMINI_API_KEY is missing.
-const plugins = [] as any[];
+// Create separate AI instances for Groq (primary) and Gemini (fallback)
+let groqAi: any = null;
+let geminiAi: any = null;
 
+// Load Groq plugin as primary
+if (process.env.GROQ_API_KEY) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { groq } = require('genkitx-groq');
+    groqAi = groq({ apiKey: process.env.GROQ_API_KEY });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('genkitx-groq plugin could not be loaded:', err);
+  }
+} else {
+  // eslint-disable-next-line no-console
+  console.warn('GROQ_API_KEY is not set; groq plugin disabled. Set GROQ_API_KEY to enable it.');
+}
+
+// Load Google AI plugin as fallback
 if (process.env.GEMINI_API_KEY) {
   try {
-    // Use require to avoid importing the plugin at module load time (avoids plugin init errors)
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { googleAI } = require('@genkit-ai/google-genai');
-    plugins.push(googleAI({ apiKey: process.env.GEMINI_API_KEY }));
+    geminiAi = googleAI({ apiKey: process.env.GEMINI_API_KEY });
   } catch (err) {
-    // If the plugin fails to load, log a warning and proceed without it so the app remains functional.
-    // The original error was: FAILED_PRECONDITION: Please pass in the API key or set the GEMINI_API_KEY
-    // We handle that more gracefully here.
     // eslint-disable-next-line no-console
     console.warn('google-genai plugin could not be loaded:', err);
   }
@@ -25,19 +37,27 @@ if (process.env.GEMINI_API_KEY) {
   console.warn('GEMINI_API_KEY is not set; google-genai plugin disabled. Set GEMINI_API_KEY to enable it.');
 }
 
-const model = process.env.GENKIT_MODEL || 'googleai/gemini-1.0';
+// Export individual AI instances for fallback logic
+export { groqAi, geminiAi };
 
-if (!process.env.GENKIT_MODEL) {
-  // eslint-disable-next-line no-console
-  console.info(`GENKIT_MODEL not set. Using default model: '${model}'. Set GENKIT_MODEL to override.`);
-}
+// Create a wrapper AI instance that uses Groq as primary and Gemini as fallback
+const createFallbackAi = () => {
+  const plugins = [];
+  if (groqAi) {
+    plugins.push(groqAi);
+  }
+  if (geminiAi) {
+    plugins.push(geminiAi);
+  }
 
-if (process.env.GEMINI_API_KEY && plugins.length === 0) {
-  // eslint-disable-next-line no-console
-  console.warn('GEMINI_API_KEY is set but the google-genai plugin failed to load; model calls may fail at runtime.');
-}
+  if (plugins.length === 0) {
+    throw new Error('No AI providers available. Please set GROQ_API_KEY or GEMINI_API_KEY environment variables.');
+  }
 
-export const ai = genkit({
-  plugins,
-  model,
-});
+  return genkit({
+    plugins,
+    model: groqAi ? 'groq/llama-3.1-8b-instant' : 'googleai/gemini-1.5-flash',
+  });
+};
+
+export const ai = createFallbackAi();

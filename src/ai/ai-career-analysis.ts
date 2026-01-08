@@ -8,11 +8,11 @@
  * - AnalyzeAptitudeOutput - The return type for the analyzeAptitude function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, groqAi, geminiAi} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AnalyzeAptitudeInputSchema = z.object({
-  answers: z.array(z.string()).describe('An array of strings representing the user’s answers to the personality quiz.'),
+  answers: z.array(z.string()).describe("An array of strings representing the user's answers to the personality quiz."),
   timeTaken: z.number().describe('The time taken to complete the quiz, in seconds.'),
 });
 export type AnalyzeAptitudeInput = z.infer<typeof AnalyzeAptitudeInputSchema>;

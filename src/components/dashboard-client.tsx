@@ -9,7 +9,6 @@ import {
   simulateCareerStream,
   type SimulateCareerStreamInput,
   type SimulateCareerStreamOutput,
-  type ConversationTurn,
 } from '@/ai/flows/stream-explorer-simulation';
 import { generateDetailedReport, type DetailedReportOutput } from '@/ai/flows/detailed-report-generation';
 
@@ -43,7 +42,6 @@ export default function DashboardClient({
   const [analysis, setAnalysis] = useState<AptitudeAnalysis | null>(null);
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
   const [simulation, setSimulation] = useState<SimulateCareerStreamOutput | null>(null);
-  const [simulationHistory, setSimulationHistory] = useState<ConversationTurn[]>([]);
   const [simulationFeedback, setSimulationFeedback] = useState<string | null>(null);
   const [finalReport, setFinalReport] = useState<DetailedReportOutput | null>(null);
 
@@ -82,10 +80,9 @@ export default function DashboardClient({
     setSimulation(null);
     setSimulationFeedback(null);
     setFinalReport(null);
-    setSimulationHistory([]);
   };
 
-  const handleSimulate = (userResponse?: string) => {
+  const handleSimulate = () => {
     if (!selectedStream || !quizResults) return;
 
     startSimulatingTransition(async () => {
@@ -93,16 +90,9 @@ export default function DashboardClient({
         const input: SimulateCareerStreamInput = {
           careerStream: selectedStream,
           userPreferences: quizResults.answers,
-          conversationHistory: simulationHistory,
-          userResponse: userResponse,
         };
         const result = await simulateCareerStream(input);
         setSimulation(result);
-        if(userResponse) {
-          setSimulationHistory(prev => [...prev, { role: 'user', content: userResponse }]);
-        }
-        setSimulationHistory(prev => [...prev, { role: 'model', content: result.scenario }]);
-
         setPageState('simulated');
       } catch (e) {
         console.error('Simulation Failed', e);
@@ -129,7 +119,7 @@ export default function DashboardClient({
       }
     });
   };
-  
+
   const handleDownloadReport = () => {
     const chartElement = document.getElementById('report-chart-container');
     if (!chartElement || !finalReport || !selectedStream) {
@@ -151,7 +141,7 @@ export default function DashboardClient({
       }
     }).then(canvas => {
       const chartImgData = canvas.toDataURL('image/png', 1.0);
-      
+
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         alert("Could not open a new window for printing. Please check your browser's popup settings.");
@@ -292,10 +282,10 @@ export default function DashboardClient({
                 </AccordionItem>
                 <AccordionItem value="item-2">
                   <AccordionTrigger className="text-base font-semibold">
-                     <div className="flex items-center gap-2">
-                       <BookOpen className="h-5 w-5 text-muted-foreground"/>
-                        Other Paths
-                     </div>
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-muted-foreground" />
+                      Other Paths
+                    </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-2 pt-2">
                     {otherStreams.map(stream => (
@@ -345,37 +335,63 @@ export default function DashboardClient({
                 <Card className="bg-primary/5">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Bot /> Stream Explorer
+                      <Bot /> Stream Explorer: Day in the Life
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {isSimulating && !simulation && (
-                      <div className="space-y-2 animate-pulse">
+                      <div className="space-y-4 animate-pulse">
                         <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-32 w-full" />
+                        <Skeleton className="h-32 w-full" />
                       </div>
                     )}
                     {simulation && (
-                      <div className="space-y-4">
-                        <p className="italic">{simulation.scenario}</p>
-                        {!simulation.isFinal && simulation.options ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {simulation.options.map((option, index) => (
-                              <Button key={index} variant="outline" onClick={() => handleSimulate(option)} disabled={isSimulating}>
-                                {isSimulating ? <Loader className="animate-spin mr-2"/> : null}
-                                {option}
-                              </Button>
-                            ))}
-                          </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <p className="font-semibold">{simulation.feedbackPrompt}</p>
-                                <div className="flex gap-4">
-                                    <Button variant={simulationFeedback === 'positive' ? 'default' : 'outline'} onClick={() => handleSimulationFeedback('positive')}><ThumbsUp className="mr-2"/> I like this</Button>
-                                    <Button variant={simulationFeedback === 'negative' ? 'destructive' : 'outline'} onClick={() => handleSimulationFeedback('negative')}><ThumbsDown className="mr-2"/> Not for me</Button>
+                      <div className="space-y-6">
+                        <div className="bg-white/50 p-4 rounded-lg">
+                          <p className="text-lg font-medium">{simulation.introduction}</p>
+                        </div>
+
+                        <div className="space-y-4">
+                          {simulation.scenarios.map((scenario: any, idx: number) => (
+                            <Card key={idx} className="border-l-4 border-l-primary">
+                              <CardHeader className="py-3">
+                                <CardTitle className="text-base font-bold flex justify-between">
+                                  <span>{scenario.title}</span>
+                                  <span className="text-sm font-normal text-muted-foreground">{scenario.timeOfDay}</span>
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="py-3 space-y-3">
+                                <p>{scenario.description}</p>
+                                <div className="bg-muted p-3 rounded-md">
+                                  <p className="font-medium text-sm mb-2">Challenge: {scenario.challenge}</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {scenario.options.map((opt: string, i: number) => (
+                                      <span key={i} className="text-xs bg-background border px-2 py-1 rounded shadow-sm text-muted-foreground">
+                                        {opt}
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+
+                        <div className="bg-white/50 p-4 rounded-lg space-y-4">
+                          <p>{simulation.conclusion}</p>
+                          <div className="space-y-2">
+                            <p className="font-semibold text-center">Did you find this career path interesting?</p>
+                            <div className="flex justify-center gap-4">
+                              <Button variant={simulationFeedback === 'positive' ? 'default' : 'outline'} onClick={() => handleSimulationFeedback('positive')}>
+                                <ThumbsUp className="mr-2 h-4 w-4" /> Yes, I like it
+                              </Button>
+                              <Button variant={simulationFeedback === 'negative' ? 'destructive' : 'outline'} onClick={() => handleSimulationFeedback('negative')}>
+                                <ThumbsDown className="mr-2 h-4 w-4" /> Not for me
+                              </Button>
                             </div>
-                        )}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -419,25 +435,25 @@ export default function DashboardClient({
                           </div>
                         )}
                         {finalReport && (
-                            <div className="p-4">
-                                <div id="report-chart-container">
-                                    <DetailedReportChart data={finalReport.aptitudeScores} onDownload={handleDownloadReport} />
-                                </div>
-                                <div className="mt-4">
-                                    <h3 className="font-semibold">Strengths:</h3>
-                                    <p className="text-sm text-muted-foreground">{finalReport.strengths}</p>
-                                </div>
-                                <div className="mt-4">
-                                    <h3 className="font-semibold">Suitability for {selectedStream}:</h3>
-                                    <p className="text-sm text-muted-foreground">{finalReport.suitability}</p>
-                                </div>
-                                <div className="mt-4">
-                                    <h3 className="font-semibold">Future Job Prospects:</h3>
-                                    <ul className="list-disc list-inside text-sm text-muted-foreground">
-                                        {finalReport.jobProspects.map((job, index) => <li key={`${job}-${index}`}>{job}</li>)}
-                                    </ul>
-                                </div>
+                          <div className="p-4">
+                            <div id="report-chart-container">
+                              <DetailedReportChart data={finalReport.aptitudeScores} onDownload={handleDownloadReport} />
                             </div>
+                            <div className="mt-4">
+                              <h3 className="font-semibold">Strengths:</h3>
+                              <p className="text-sm text-muted-foreground">{finalReport.strengths}</p>
+                            </div>
+                            <div className="mt-4">
+                              <h3 className="font-semibold">Suitability for {selectedStream}:</h3>
+                              <p className="text-sm text-muted-foreground">{finalReport.suitability}</p>
+                            </div>
+                            <div className="mt-4">
+                              <h3 className="font-semibold">Future Job Prospects:</h3>
+                              <ul className="list-disc list-inside text-sm text-muted-foreground">
+                                {finalReport.jobProspects.map((job, index) => <li key={`${job}-${index}`}>{job}</li>)}
+                              </ul>
+                            </div>
+                          </div>
                         )}
                       </DialogContent>
                     </Dialog>

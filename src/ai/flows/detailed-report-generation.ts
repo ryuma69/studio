@@ -1,6 +1,6 @@
 'use server';
 
-import { ai } from '@/ai/genkit';
+import { ai, groqAi, geminiAi } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const DetailedReportInputSchema = z.object({
