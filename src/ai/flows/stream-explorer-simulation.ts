@@ -54,6 +54,14 @@ Generate a valid JSON object describing a single day in this career.
 - **conclusion**: A wrap-up message.
 
 Unconditionally output a valid JSON object conforming to the schema.
+Do not output the JSON schema itself as part of the object.
+Do not wrap the output in any extra keys like "properties" or "type".
+The root object directly contains:
+{
+  "introduction": "...",
+  "scenarios": [...],
+  "conclusion": "..."
+}
 `,
 });
 
