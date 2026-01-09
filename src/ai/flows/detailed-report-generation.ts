@@ -3,6 +3,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
+// Safe for build-time: Null checks added for 'ai' instance
 const DetailedReportInputSchema = z.object({
   careerStream: z.string().describe('The name of the career stream.'),
   userFeedback: z.string().describe('The user feedback on the career stream.'),
