@@ -314,7 +314,7 @@ export default function HomePage() {
                                             <ChevronLeft className="mr-1 h-4 w-4" /> Back
                                         </Button>
                                         <div className="h-6 w-px bg-border mx-2" />
-                                        <h3 className="font-semibold">Report for {selectedReport.stream}</h3>
+                                        <DialogTitle className="font-semibold text-base">Report for {selectedReport.stream}</DialogTitle>
                                         <span className="ml-auto text-xs text-muted-foreground">{formatDate(selectedReport.generatedAt)}</span>
                                     </div>
                                     <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">

@@ -1,0 +1,130 @@
+[
+    {
+        "id": "science_pcm",
+        "title": "Science (PCM)",
+        "description": "For students interested in Engineering, Physics, Mathematics, and Technology.",
+        "roadmap": [
+            {
+                "year": "11th Grade",
+                "milestone": "Foundation Building",
+                "details": "Focus on Physics, Chemistry, and Maths core concepts. Start preparing for entrance exams (JEE/SAT)."
+            },
+            {
+                "year": "12th Grade",
+                "milestone": "Advanced Concepts & Boards",
+                "details": "Master calculus and mechanics. Score high in Board exams. Finalize college applications."
+            },
+            {
+                "year": "Year 1 (College)",
+                "milestone": "Engineering Basics",
+                "details": "Introduction to Programming, Data Structures, and Core Engineering subjects. Explore internships."
+            },
+            {
+                "year": "Year 3 (College)",
+                "milestone": "Specialization",
+                "details": "Choose electives (AI/ML, Robotics, Civil). Work on capstone projects. Secure pre-placement offers."
+            },
+            {
+                "year": "Year 5 (Professional)",
+                "milestone": "Early Career",
+                "details": "Start as a Junior Engineer, Data Analyst, or Researcher. Focus on upskilling and networking."
+            }
+        ]
+    },
+    {
+        "id": "science_pcb",
+        "title": "Science (PCB)",
+        "description": "For students interested in Medicine, Biology, Biotechnology, and Healthcare.",
+        "roadmap": [
+            {
+                "year": "11th Grade",
+                "milestone": "Foundation in Life Sciences",
+                "details": "In-depth study of Biology (Botany & Zoology), Chemistry, and Physics. Begin NEET/Pre-Med prep."
+            },
+            {
+                "year": "12th Grade",
+                "milestone": "Entrance Exams",
+                "details": "Focus on competitive exams. Balance Board exam preparation. Explore Allied Health options."
+            },
+            {
+                "year": "Year 1 (Med School)",
+                "milestone": "Anatomy & Physiology",
+                "details": "Intensive laboratry work. Understanding human body systems. Community medicine introductory."
+            },
+            {
+                "year": "Year 4 (Med School)",
+                "milestone": "Clinical Rotations",
+                "details": "Hands-on experience in hospitals. Rotating through Surgery, Pediatrics, Internal Medicine."
+            },
+            {
+                "year": "Post-Grad",
+                "milestone": "Residency/Specialization",
+                "details": "Choosing a specialty (Cardiology, Neurology). Intensive practical training and research."
+            }
+        ]
+    },
+    {
+        "id": "commerce",
+        "title": "Commerce",
+        "description": "For students interested in Finance, Business, Economics, and Management.",
+        "roadmap": [
+            {
+                "year": "11th Grade",
+                "milestone": "Introduction to Business",
+                "details": "Basics of Accounting, Economics, and Business Studies. improving command over numbers."
+            },
+            {
+                "year": "12th Grade",
+                "milestone": "Financial Literacy",
+                "details": "Advanced Accounting and Macroeconomics. Preparation for CA/CS/B.Com entrance exams."
+            },
+            {
+                "year": "Year 1 (College)",
+                "milestone": "Undergraduate Studies",
+                "details": "B.Com/BBA. Basics of Marketing, HR, and Finance. internships in startups or firms."
+            },
+            {
+                "year": "Year 3 (College)",
+                "milestone": "Professional Certification",
+                "details": "Appearing for CA Inter / CFA Level 1 / MBA Entrance (CAT/GMAT). Specializing in Finance."
+            },
+            {
+                "year": "Year 5 (Professional)",
+                "milestone": "Corporate Entry",
+                "details": "Financial Analyst, Auditor, or Marketing Associate. Pursuit of MBA."
+            }
+        ]
+    },
+    {
+        "id": "arts",
+        "title": "Arts & Humanities",
+        "description": "For students interested in Literature, Psychology, History, Design, and Civil Services.",
+        "roadmap": [
+            {
+                "year": "11th Grade",
+                "milestone": "Broadening Horizons",
+                "details": "Exploring History, Psychology, Sociology, and Political Science. Developing writing skills."
+            },
+            {
+                "year": "12th Grade",
+                "milestone": "Critical Thinking",
+                "details": "Deep dive into chosen electives. Board exams. Preparation for Design/Law/Liberal Arts entrance."
+            },
+            {
+                "year": "Year 1 (College)",
+                "milestone": "BA / Design Foundation",
+                "details": "Foundation courses in Liberal Arts or Design. Exploring various disciplines. Volunteering."
+            },
+            {
+                "year": "Year 3 (College)",
+                "milestone": "Research & Portfolio",
+                "details": "Dissertation work. Building a strong design portfolio or publishing papers. Internships in NGOs/Media."
+            },
+            {
+                "year": "Year 5 (Professional)",
+                "milestone": "MA / Career Launch",
+                "details": "Masters degree in specialized field or joining Journalism, Public Policy, or Creative Industry."
+            }
+        ]
+    }
+]

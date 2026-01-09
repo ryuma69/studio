@@ -1,8 +1,7 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  env: {
-    GEOAPIFY_API_KEY: 'your_geoapify_api_key',
-  },
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  // reactStrictMode: true, // enabled by default in recent versions
 };
 
-module.exports = nextConfig;
+export default nextConfig;

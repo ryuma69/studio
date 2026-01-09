@@ -1,6 +1,6 @@
 'use server';
 
-import { ai, groqAi, geminiAi } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const DetailedReportInputSchema = z.object({
@@ -23,11 +23,23 @@ const DetailedReportOutputSchema = z.object({
 
 export type DetailedReportOutput = z.infer<typeof DetailedReportOutputSchema>;
 
-export async function generateDetailedReport(input: DetailedReportInput): Promise<DetailedReportOutput> {
-  return detailedReportFlow(input);
-}
+const MOCK_DETAILED_REPORT: DetailedReportOutput = {
+  strengths: "You exhibit strong analytical reasoning and a keen eye for detail. You approach problems methodically and enjoy structured environments.",
+  suitability: "This stream matches your profile perfectly as it requires logic, precision, and the ability to work with complex systems.",
+  jobProspects: ["Software Developer", "Data Analyst", "Technical Manager"],
+  aptitudeScores: [
+    { name: "Logical", score: 85 },
+    { name: "Verbal", score: 65 },
+    { name: "Creative", score: 70 },
+    { name: "Spatial", score: 80 }
+  ]
+};
 
+<<<<<<< HEAD
 const prompt = ai!.definePrompt({
+=======
+const prompt = ai ? ai.definePrompt({
+>>>>>>> d4e3f69bc80057d8d1a3fd533acdfbcc2cfcc108
   name: 'detailedReportPrompt',
   input: { schema: DetailedReportInputSchema },
   output: { schema: DetailedReportOutputSchema },
@@ -44,16 +56,31 @@ Based on this, provide the following information in JSON format:
 - jobProspects: List 3-4 sample job titles available in this stream in the future (e.g., ["Software Developer", "Data Analyst"]).
 - aptitudeScores: Analyze the quiz answers and provide a score out of 100 for each of the following aptitudes: 'Logical', 'Spatial', 'Verbal', and 'Creative'. The scores should be represented as an array of objects, e.g., [{ "name": "Logical", "score": 85 }, ...].
 `,
-});
+}) : null;
 
+<<<<<<< HEAD
 const detailedReportFlow = ai!.defineFlow(
+=======
+const detailedReportFlow = ai ? ai.defineFlow(
+>>>>>>> d4e3f69bc80057d8d1a3fd533acdfbcc2cfcc108
   {
     name: 'detailedReportFlow',
     inputSchema: DetailedReportInputSchema,
     outputSchema: DetailedReportOutputSchema,
   },
   async input => {
+    if (!prompt) throw new Error("Prompt not defined");
     const { output } = await prompt(input);
     return output!;
   }
-);
+) : null;
+
+export async function generateDetailedReport(input: DetailedReportInput): Promise<DetailedReportOutput> {
+  if (!detailedReportFlow) {
+    console.log("Mock Mode: Returning detailed report mock.");
+    // Simulate delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return MOCK_DETAILED_REPORT;
+  }
+  return detailedReportFlow(input);
+}
