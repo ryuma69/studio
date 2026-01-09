@@ -31,13 +31,38 @@ const SimulateCareerStreamOutputSchema = z.object({
 });
 export type SimulateCareerStreamOutput = z.infer<typeof SimulateCareerStreamOutputSchema>;
 
-export async function simulateCareerStream(
-  input: SimulateCareerStreamInput
-): Promise<SimulateCareerStreamOutput> {
-  return simulateCareerStreamFlow(input);
-}
+const MOCK_SIMULATION: SimulateCareerStreamOutput = {
+  introduction: "Welcome to your day as a professional! You're about to step into the shoes of an expert in this field. Get ready to make decisions that professionals make every day.",
+  scenarios: [
+    {
+      id: "s1",
+      timeOfDay: "9:00 AM",
+      title: "Morning Kickoff",
+      description: "You arrive at the workspace. The team is gathering for the daily stand-up meeting to discuss progress on the new project.",
+      challenge: "A critical bug was reported by a user overnight. It needs immediate attention, but you also have a feature deadline today.",
+      options: ["Prioritize the bug fix immediately", "Delegate the bug to a junior dev", "Stick to the feature plan and fix bug later"]
+    },
+    {
+      id: "s2",
+      timeOfDay: "1:00 PM",
+      title: "Deep Work Session",
+      description: "After lunch, you have a block of time for focused work on the core architecture of the application.",
+      challenge: "You realize the current design won't scale well for future users. Refactoring now will delay the release.",
+      options: ["Refactor now for long-term health", "Stick to current design to meet deadline", "Consult with the lead architect"]
+    },
+    {
+      id: "s3",
+      timeOfDay: "4:00 PM",
+      title: "Client Presentation",
+      description: "You are presenting the prototype to the client stakeholders. They seem skeptical about one of the features.",
+      challenge: "The client suggests removing a key feature you believe is essential.",
+      options: ["Defend the feature with data", "Accept their feedback and remove it", "Propose a compromise version"]
+    }
+  ],
+  conclusion: "Great job today! You experienced the balancing act of a professional in this field. You showed good decision-making skills."
+};
 
-const prompt = ai.definePrompt({
+const prompt = ai ? ai.definePrompt({
   name: 'simulateCareerStreamPrompt',
   input: { schema: SimulateCareerStreamInputSchema },
   output: { schema: SimulateCareerStreamOutputSchema },
@@ -63,16 +88,29 @@ The root object directly contains:
   "conclusion": "..."
 }
 `,
-});
+}) : null;
 
-const simulateCareerStreamFlow = ai.defineFlow(
+const simulateCareerStreamFlow = ai ? ai.defineFlow(
   {
     name: 'simulateCareerStreamFlow',
     inputSchema: SimulateCareerStreamInputSchema,
     outputSchema: SimulateCareerStreamOutputSchema,
   },
   async input => {
+    if (!prompt) throw new Error("Prompt not defined");
     const { output } = await prompt(input);
     return output!;
   }
-);
+) : null;
+
+export async function simulateCareerStream(
+  input: SimulateCareerStreamInput
+): Promise<SimulateCareerStreamOutput> {
+  if (!simulateCareerStreamFlow) {
+    console.log("Mock Mode: Returning simulation mock.");
+    // Simulate delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return MOCK_SIMULATION;
+  }
+  return simulateCareerStreamFlow(input);
+}
