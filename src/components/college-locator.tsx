@@ -26,7 +26,7 @@ const Map = ({ center }: { center: { lat: number, lng: number } | null }) => {
   if (!process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY) {
     return (
       <div className="flex items-center justify-center h-full bg-destructive/10 text-destructive rounded-md p-4">
-          Geoapify API Key is not configured. Please add NEXT_PUBLIC_GEOAPIFY_API_KEY to your environment variables.
+        Geoapify API Key is not configured. Please add NEXT_PUBLIC_GEOAPIFY_API_KEY to your environment variables.
       </div>
     )
   }
@@ -51,7 +51,7 @@ export default function CollegeLocator() {
           });
         },
         (error) => {
-          console.error("Error getting user location: ", error);
+          console.warn("Location access denied or failed, using default location.", error.message);
           // Fallback to a default location if user denies permission
           setUserLocation({ lat: 37.7749, lng: -122.4194 });
         }

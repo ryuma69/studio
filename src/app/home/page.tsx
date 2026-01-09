@@ -306,6 +306,9 @@ export default function HomePage() {
                             ) : (
                                 // DETAIL VIEW
                                 <div className="flex flex-col h-full overflow-hidden">
+                                    {/* Accessibility Title */}
+                                    <DialogTitle className="sr-only">Report for {selectedReport.stream}</DialogTitle>
+
                                     <div className="p-4 border-b flex items-center gap-2 bg-muted/10">
                                         <Button variant="ghost" size="sm" onClick={() => setSelectedReport(null)}>
                                             <ChevronLeft className="mr-1 h-4 w-4" /> Back

@@ -37,7 +37,7 @@ export async function simulateCareerStream(
   return simulateCareerStreamFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const prompt = ai!.definePrompt({
   name: 'simulateCareerStreamPrompt',
   input: { schema: SimulateCareerStreamInputSchema },
   output: { schema: SimulateCareerStreamOutputSchema },
@@ -65,7 +65,7 @@ The root object directly contains:
 `,
 });
 
-const simulateCareerStreamFlow = ai.defineFlow(
+const simulateCareerStreamFlow = ai!.defineFlow(
   {
     name: 'simulateCareerStreamFlow',
     inputSchema: SimulateCareerStreamInputSchema,

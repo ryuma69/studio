@@ -16,8 +16,8 @@ const DetailedReportOutputSchema = z.object({
   suitability: z.string().describe('Why the career stream is a good fit.'),
   jobProspects: z.array(z.string()).describe('Sample job titles.'),
   aptitudeScores: z.array(z.object({
-      name: z.string().describe("Name of the aptitude area (e.g., 'Logical', 'Creative', 'Verbal')"),
-      score: z.number().describe("Score out of 100 for this area.")
+    name: z.string().describe("Name of the aptitude area (e.g., 'Logical', 'Creative', 'Verbal')"),
+    score: z.number().describe("Score out of 100 for this area.")
   })).describe("A breakdown of the user's aptitude scores.")
 });
 
@@ -27,7 +27,7 @@ export async function generateDetailedReport(input: DetailedReportInput): Promis
   return detailedReportFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const prompt = ai!.definePrompt({
   name: 'detailedReportPrompt',
   input: { schema: DetailedReportInputSchema },
   output: { schema: DetailedReportOutputSchema },
@@ -46,7 +46,7 @@ Based on this, provide the following information in JSON format:
 `,
 });
 
-const detailedReportFlow = ai.defineFlow(
+const detailedReportFlow = ai!.defineFlow(
   {
     name: 'detailedReportFlow',
     inputSchema: DetailedReportInputSchema,
