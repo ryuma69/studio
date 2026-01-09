@@ -3,7 +3,7 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase'; // Corrected import path
 
 export const metadata: Metadata = {
-  title: '10th Grade Career Compass',
+  title: 'Vidhya Sarathi',
   description: 'Find your path after 10th grade with AI-powered guidance.',
 };
 

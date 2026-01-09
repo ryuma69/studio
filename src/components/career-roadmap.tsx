@@ -1,74 +1,35 @@
-import { CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, Loader2, BookOpen, GraduationCap, Briefcase } from "lucide-react";
+import { useFirestore } from "@/firebase/provider";
+import { collection, query, getDocs } from "firebase/firestore";
 
-type RoadmapData = {
-  [key: string]: {
-    year1: string[];
-    year3: string[];
-    year5: string[];
-  };
+type DBRouteStep = {
+  year: string;
+  milestone: string;
+  details: string;
 };
 
-const roadmapData: RoadmapData = {
-  "Software Engineering": {
-    year1: ["Complete 12th grade with a focus on Physics, Chemistry, and Math (PCM)", "Start learning a programming language like Python or JavaScript", "Build a simple personal project, like a website or a small game"],
-    year3: ["Get into a good engineering college for a B.Tech in Computer Science", "Participate in hackathons and coding competitions", "Secure an internship in a tech company"],
-    year5: ["Graduate with a strong portfolio of projects", "Land a job as a Software Development Engineer (SDE 1)", "Contribute to a real-world product"],
-  },
-  "Doctor": {
-    year1: ["Complete 12th grade with a focus on Physics, Chemistry, and Biology (PCB)", "Prepare for and score well in the NEET exam", "Volunteer at a local clinic or hospital"],
-    year3: ["Secure admission to a reputable medical college for MBBS", "Focus on understanding foundational medical subjects", "Develop good clinical observation skills"],
-    year5: ["Complete the first few years of your MBBS degree", "Start clinical rotations in different departments", "Decide on an area of interest for future specialization"],
-  },
-  "Data Science": {
-    year1: ["Complete 12th grade with Math and preferably Computer Science", "Learn foundational statistics and probability", "Start a course on data analysis with Python"],
-    year3: ["Pursue a degree in Statistics, Math, or Computer Science", "Work on data analysis projects with real datasets", "Do an internship as a Data Analyst"],
-    year5: ["Graduate and start a Master's program in Data Science or a related field", "Master machine learning algorithms", "Get a job as a Junior Data Scientist"],
-  },
-  "UX/UI Design": {
-    year1: ["Complete 12th grade, preferably from an Arts or Commerce stream", "Start learning design principles and psychology", "Build a portfolio with mock design projects for apps or websites"],
-    year3: ["Enroll in a Bachelor of Design (B.Des) or a similar design course", "Master design tools like Figma", "Get an internship as a UI/UX design trainee"],
-    year5: ["Graduate with a strong design portfolio", "Land a job as a Junior UX/UI Designer", "Work on designing features for a live product"],
-  },
-  "Graphic Design": {
-    year1: ["Complete 12th grade, preferably from the Arts stream", "Develop sketching and illustration skills", "Become proficient in Adobe Illustrator and Photoshop"],
-    year3: ["Pursue a degree in Fine Arts or a diploma in Graphic Design", "Create a diverse portfolio (branding, social media, etc.)", "Freelance for small clients to gain experience"],
-    year5: ["Graduate and get a job at a design studio or marketing agency", "Work on branding projects for various clients", "Develop a unique design style"],
-  },
-  "Marketing": {
-    year1: ["Complete 12th grade, preferably from the Commerce stream", "Read books on marketing and consumer behavior", "Start a blog or social media page on a topic you're passionate about"],
-    year3: ["Pursue a BBA or a B.Com degree with a marketing specialization", "Learn about digital marketing tools (SEO, Google Ads)", "Intern with the marketing team of a company"],
-    year5: ["Graduate and land a role as a Marketing Coordinator or Specialist", "Run your first major marketing campaign", "Analyze campaign data to measure success"],
-  },
-  "Financial Analysis": {
-    year1: ["Complete 12th grade from the Commerce stream with Math", "Master accounting principles and Excel", "Follow the stock market and business news"],
-    year3: ["Pursue a B.Com or BBA in Finance degree", "Learn financial modeling and valuation", "Intern at a financial firm or a bank"],
-    year5: ["Graduate and prepare for certifications like CFA Level 1", "Get a job as a Junior Financial Analyst", "Assist in preparing financial reports for a company"],
-  },
-  "Chartered Accountancy": {
-    year1: ["Complete 12th grade from the Commerce stream", "Register for the CA Foundation course", "Clear the Foundation exam"],
-    year3: ["Clear the CA Intermediate exams (both groups)", "Begin your 3-year articleship training under a practicing CA", "Gain practical experience in audit, tax, and accounting"],
-    year5: ["Appear for the CA Final exams", "Complete your articleship", "Qualify as a Chartered Accountant"],
-  },
-};
+// Removed hardcoded roadmapData as per request to use DB only.
+export const allCareerStreams = []; // Or fetch dynamically if needed elsewhere
 
-export const allCareerStreams = Object.keys(roadmapData);
-
-
-const RoadmapMilestone = ({ title, milestones }: { title: string; milestones: string[] }) => (
+const RoadmapMilestone = ({ title, milestones, details }: { title: string; milestones: string[]; details?: string }) => (
   <div className="relative pl-8">
     <div className="absolute left-0 top-0 flex h-full">
       <div className="h-full w-px bg-border"></div>
-      <div className="absolute -left-3 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-        <span className="text-xs font-bold text-primary-foreground">{title.substring(0, 2)}</span>
+      <div className="absolute -left-3 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-primary border-2 border-background shadow-sm">
+        {title.includes("1") || title.includes("11") ? <BookOpen className="h-3 w-3 text-primary-foreground" /> :
+          title.includes("3") || title.includes("Entrance") ? <Loader2 className="h-3 w-3 text-primary-foreground" /> :
+            <Briefcase className="h-3 w-3 text-primary-foreground" />}
       </div>
     </div>
-    <div className="pb-8">
-      <h4 className="font-semibold text-primary">{title}</h4>
-      <ul className="mt-2 space-y-2">
+    <div className="pb-8 group">
+      <h4 className="font-bold text-primary text-lg flex items-center gap-2">{title}</h4>
+      {details && <p className="text-xs text-muted-foreground mb-2 italic">{details}</p>}
+      <ul className="mt-2 space-y-3">
         {milestones.map((item, index) => (
-          <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
-            <span>{item}</span>
+          <li key={index} className="flex items-start gap-3 text-sm text-foreground/80 bg-muted/30 p-2 rounded hover:bg-muted/50 transition-colors">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+            <span className="leading-snug">{item}</span>
           </li>
         ))}
       </ul>
@@ -77,30 +38,76 @@ const RoadmapMilestone = ({ title, milestones }: { title: string; milestones: st
 );
 
 export default function CareerRoadmap({ stream }: { stream: string }) {
-  const data = roadmapData[stream] || roadmapData["Software Engineering"];
+  const firestore = useFirestore();
+  const [dbData, setDbData] = useState<DBRouteStep[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Removed local fallback logic
+
+  useEffect(() => {
+    const fetchRoadmap = async () => {
+      if (!firestore || !stream) return;
+      setLoading(true);
+      try {
+        const roadmapsRef = collection(firestore, 'careerPaths');
+        const q = query(roadmapsRef);
+        // Fetch all and fuzzy match client-side
+        const snapshot = await getDocs(q);
+
+        const match = snapshot.docs.find(doc => {
+          const data = doc.data();
+          return data.title?.toLowerCase().includes(stream.toLowerCase()) ||
+            data.stream?.toLowerCase().includes(stream.toLowerCase()) ||
+            data.id?.toLowerCase().includes(stream.toLowerCase()) ||
+            stream.toLowerCase().includes(data.title?.toLowerCase());
+        });
+
+        if (match) {
+          setDbData(match.data().roadmap);
+        } else {
+          setDbData(null);
+        }
+      } catch (e) {
+        console.error("Failed to fetch roadmap from DB", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoadmap();
+  }, [firestore, stream]);
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+        <p className="text-muted-foreground animate-pulse">Retrieving verified roadmap from database...</p>
+      </div>
+    );
+  }
+
+  if (dbData && dbData.length > 0) {
+    return (
+      <div className="w-full mt-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="mb-6 p-4 bg-primary/5 rounded-lg border border-primary/10">
+          <h3 className="font-bold text-primary flex items-center gap-2"><GraduationCap className="h-5 w-5" /> Database Path Found</h3>
+          <p className="text-xs text-muted-foreground">Showing verified career roadmap from Vidhya Sarathi Database.</p>
+        </div>
+        {dbData.map((step, idx) => (
+          <RoadmapMilestone
+            key={idx}
+            title={step.year}
+            milestones={[step.milestone, step.details]}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full">
-      <RoadmapMilestone title="Year 1" milestones={data.year1} />
-      <RoadmapMilestone title="Year 3" milestones={data.year3} />
-      <div className="relative pl-8">
-        <div className="absolute left-0 top-0 flex h-full">
-          <div className="absolute -left-3 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-            <span className="text-xs font-bold text-primary-foreground">Y5</span>
-          </div>
-        </div>
-        <div>
-          <h4 className="font-semibold text-primary">Year 5</h4>
-          <ul className="mt-2 space-y-2">
-            {data.year5.map((item, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+    <div className="p-8 text-center text-muted-foreground border-2 border-dashed rounded-xl">
+      <Briefcase className="h-10 w-10 mx-auto mb-2 opacity-20" />
+      <p>No verified roadmap found in database for "{stream}".</p>
     </div>
   );
 }

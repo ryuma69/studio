@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuth } from '@/firebase/provider';
+import { useUser, useAuth, useFirestore } from '@/firebase/provider';
 import { signOut } from 'firebase/auth';
-import { Button } from '@/components/ui/button';
+import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
     Card,
     CardDescription,
@@ -23,13 +25,55 @@ import {
     DialogFooter
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Brain, Map, LineChart, ArrowRight, Sparkles, User, LogOut, Settings, Edit } from 'lucide-react';
+import { Brain, Map, LineChart, ArrowRight, Sparkles, User, LogOut, Settings, Edit, FileText, ChevronLeft, Calendar } from 'lucide-react';
+import DetailedReportChart from '@/components/detailed-report-chart';
+import html2canvas from 'html2canvas';
+
+type ReportData = {
+    id: string;
+    stream: string;
+    generatedAt: string;
+    report: any; // Using simplified type for now, strictly matches DetailedReportOutput
+};
 
 export default function HomePage() {
     const { user, isUserLoading } = useUser();
     const auth = useAuth();
+    const firestore = useFirestore();
     const router = useRouter();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+    // Reports State
+    const [reports, setReports] = useState<ReportData[]>([]);
+    const [isLoadingReports, setIsLoadingReports] = useState(true);
+    const [isReportsListOpen, setIsReportsListOpen] = useState(false);
+    const [selectedReport, setSelectedReport] = useState<ReportData | null>(null);
+
+    const handleExplorePaths = async () => {
+        // Just navigate to the dedicated career paths page. 
+        // Data loading is handled there.
+        router.push('/career-paths');
+    };
+
+    const handleDownloadReport = () => {
+        const chartElement = document.getElementById('report-chart-container');
+        if (!chartElement) {
+            console.error("Chart element not found");
+            return;
+        }
+
+        html2canvas(chartElement, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff'
+        }).then(canvas => {
+            const image = canvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `career-report-${selectedReport?.stream || 'summary'}.png`;
+            link.click();
+        });
+    };
 
     useEffect(() => {
         if (!isUserLoading && !user) {
@@ -37,11 +81,48 @@ export default function HomePage() {
         }
     }, [user, isUserLoading, router]);
 
+    // Fetch Reports
+    useEffect(() => {
+        const fetchReports = async () => {
+            if (!user || !firestore) return;
+
+            try {
+                const reportsRef = collection(firestore, 'users', user.uid, 'reports');
+                const q = query(reportsRef, orderBy('generatedAt', 'desc'));
+                const snapshot = await getDocs(q);
+
+                const fetchedReports = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as ReportData[];
+
+                setReports(fetchedReports);
+            } catch (err) {
+                console.error("Error fetching reports:", err);
+            } finally {
+                setIsLoadingReports(false);
+            }
+        };
+
+        if (user) {
+            fetchReports();
+        }
+    }, [user, firestore]);
+
     const handleSignOut = async () => {
         if (auth) {
             await signOut(auth);
             router.push('/');
         }
+    };
+
+    const formatDate = (isoString: string) => {
+        if (!isoString) return '';
+        return new Date(isoString).toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
     };
 
     if (isUserLoading) {
@@ -119,7 +200,10 @@ export default function HomePage() {
 
                 {/* Features Grid */}
                 <section className="grid md:grid-cols-2 gap-6">
-                    <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md">
+                    <Card
+                        className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md"
+                        onClick={handleExplorePaths}
+                    >
                         <CardHeader>
                             <CardTitle className="flex items-center gap-3">
                                 <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg group-hover:scale-110 transition-transform">
@@ -132,39 +216,146 @@ export default function HomePage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="h-24 flex items-center justify-center text-muted-foreground text-sm italic border-t bg-muted/20">
-                            Feature coming soon
+                            See detailed roadmaps
                         </CardContent>
                         <CardFooter>
-                            <Button variant="ghost" className="w-full group-hover:text-primary justify-between" disabled>
+                            <div className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-between cursor-pointer transition-colors group-hover:bg-primary group-hover:text-primary-foreground")}>
                                 Explore Paths <ArrowRight className="h-4 w-4" />
-                            </Button>
+                            </div>
                         </CardFooter>
                     </Card>
 
-                    <Card
-                        className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md"
-                        onClick={() => router.push('/dashboard')}
-                    >
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3">
-                                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg group-hover:scale-110 transition-transform">
-                                    <LineChart className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    <Dialog open={isReportsListOpen} onOpenChange={setIsReportsListOpen}>
+                        <DialogTrigger asChild>
+                            <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-3">
+                                        <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg group-hover:scale-110 transition-transform">
+                                            <LineChart className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                        </div>
+                                        Check Results
+                                    </CardTitle>
+                                    <CardDescription>
+                                        View your existing detailed career reports.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="h-24 flex items-center justify-center text-sm border-t bg-muted/20">
+                                    {isLoadingReports ? (
+                                        <span className="text-muted-foreground">Loading reports...</span>
+                                    ) : reports.length > 0 ? (
+                                        <span className="text-primary font-medium">{reports.length} Reports Available</span>
+                                    ) : (
+                                        <span className="text-muted-foreground">No reports generated yet</span>
+                                    )}
+                                </CardContent>
+                                <CardFooter>
+                                    <div className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-between cursor-pointer transition-colors group-hover:bg-primary group-hover:text-primary-foreground")}>
+                                        Show Results <ArrowRight className="h-4 w-4" />
+                                    </div>
+                                </CardFooter>
+                            </Card>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+                            {!selectedReport ? (
+                                // LIST VIEW
+                                <div className="flex flex-col h-full">
+                                    <DialogHeader className="p-6 pb-2">
+                                        <DialogTitle className="text-2xl">Your Benefit Reports</DialogTitle>
+                                        <DialogDescription>
+                                            Select a generated report to view detailed insights.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-3">
+                                        {isLoadingReports && <div className="text-center py-10">Loading...</div>}
+                                        {!isLoadingReports && reports.length === 0 && (
+                                            <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
+                                                No detailed reports found. <br />
+                                                <Button variant="link" onClick={() => router.push('/aptitude-test')}>Take the test to generate one.</Button>
+                                            </div>
+                                        )}
+                                        {reports.map((report) => (
+                                            <div
+                                                key={report.id}
+                                                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer group"
+                                                onClick={() => setSelectedReport(report)}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className="bg-primary/10 p-3 rounded-md">
+                                                        <FileText className="h-6 w-6 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-lg">{report.stream}</h4>
+                                                        <div className="flex items-center text-sm text-muted-foreground gap-2">
+                                                            <Calendar className="h-3 w-3" />
+                                                            {formatDate(report.generatedAt)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Button variant="ghost" size="icon" className="group-hover:translate-x-1 transition-transform">
+                                                    <ArrowRight className="h-5 w-5" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <DialogFooter className="p-6 border-t bg-muted/10">
+                                        <Button variant="outline" onClick={() => router.push('/dashboard')}>
+                                            Go to Full Dashboard
+                                        </Button>
+                                    </DialogFooter>
                                 </div>
-                                Check Results
-                            </CardTitle>
-                            <CardDescription>
-                                View your aptitude analysis scores and AI recommendations.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="h-24 flex items-center justify-center text-muted-foreground text-sm border-t bg-muted/20">
-                            View detailed reports from database
-                        </CardContent>
-                        <CardFooter>
-                            <Button variant="ghost" className="w-full group-hover:text-primary justify-between">
-                                View Dashboard <ArrowRight className="h-4 w-4" />
-                            </Button>
-                        </CardFooter>
-                    </Card>
+                            ) : (
+                                // DETAIL VIEW
+                                <div className="flex flex-col h-full overflow-hidden">
+                                    <div className="p-4 border-b flex items-center gap-2 bg-muted/10">
+                                        <Button variant="ghost" size="sm" onClick={() => setSelectedReport(null)}>
+                                            <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                                        </Button>
+                                        <div className="h-6 w-px bg-border mx-2" />
+                                        <h3 className="font-semibold">Report for {selectedReport.stream}</h3>
+                                        <span className="ml-auto text-xs text-muted-foreground">{formatDate(selectedReport.generatedAt)}</span>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+                                        {/* Reuse the Dashboard Report UI structure */}
+                                        <div className="max-w-3xl mx-auto space-y-8 pb-8">
+                                            <div className="flex justify-center bg-white p-6 rounded-xl border shadow-sm">
+                                                <DetailedReportChart data={selectedReport.report.aptitudeScores} onDownload={handleDownloadReport} />
+                                            </div>
+
+                                            <div className="grid md:grid-cols-2 gap-4">
+                                                <div className="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-lg border border-blue-100 dark:border-blue-900/20">
+                                                    <h3 className="font-semibold text-lg text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
+                                                        <Sparkles className="h-5 w-5" /> Key Strengths
+                                                    </h3>
+                                                    <p className="text-sm leading-relaxed text-blue-900 dark:text-blue-100">{selectedReport.report.strengths}</p>
+                                                </div>
+
+                                                <div className="bg-green-50 dark:bg-green-900/10 p-5 rounded-lg border border-green-100 dark:border-green-900/20">
+                                                    <h3 className="font-semibold text-lg text-green-700 dark:text-green-300 mb-3 flex items-center gap-2">
+                                                        <Map className="h-5 w-5" /> Suitability Analysis
+                                                    </h3>
+                                                    <p className="text-sm leading-relaxed text-green-900 dark:text-green-100">{selectedReport.report.suitability}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-purple-50 dark:bg-purple-900/10 p-6 rounded-lg border border-purple-100 dark:border-purple-900/20">
+                                                <h3 className="font-semibold text-lg text-purple-700 dark:text-purple-300 mb-4 flex items-center gap-2">
+                                                    <Brain className="h-5 w-5" /> Future Career Opportunities
+                                                </h3>
+                                                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {selectedReport.report.jobProspects?.map((job: string, index: number) => (
+                                                        <li key={index} className="flex items-start gap-2 text-sm bg-background/80 p-3 rounded shadow-sm">
+                                                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-purple-500 shrink-0" />
+                                                            {job}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </DialogContent>
+                    </Dialog>
                 </section>
             </div>
         </main>

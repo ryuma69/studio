@@ -28,19 +28,12 @@ const AnalyzeAptitudeOutputSchema = z.object({
 });
 export type AnalyzeAptitudeOutput = z.infer<typeof AnalyzeAptitudeOutputSchema>;
 
-export async function analyzeAptitude(input: AnalyzeAptitudeInput): Promise<AnalyzeAptitudeOutput> {
-  try {
-    return await analyzeAptitudeFlow(input);
-  } catch (err) {
-    // Log full error server-side for debugging
-    // eslint-disable-next-line no-console
-    console.error('analyzeAptitude server action failed:', err);
-    // Provide a friendly, non-sensitive error to the client
-    throw new Error('Server error while analyzing aptitude. Check server logs for details.');
-  }
-}
+const MOCK_APTITUDE_RESULT: AnalyzeAptitudeOutput = {
+  careerRecommendation: "Based on your strong problem-solving skills and interest in technology, the **Science (PCM)** stream with Computer Science is highly recommended. You consistently chose answers favoring logic, analysis, and structural thinking. This path offers robust opportunities in engineering and research.",
+  careerStreams: ["Software Engineering", "Data Science", "Civil Engineering"]
+};
 
-const analyzeAptitudePrompt = ai.definePrompt({
+const analyzeAptitudePrompt = ai ? ai.definePrompt({
   name: 'analyzeAptitudePrompt',
   input: { schema: AnalyzeAptitudeInputSchema },
   output: { schema: AnalyzeAptitudeOutputSchema },
@@ -61,9 +54,9 @@ Based on this information, provide a JSON object with:
 
 Ensure the recommendations are encouraging and suitable for a 10th-grade student.
 `,
-});
+}) : null;
 
-const analyzeAptitudeFlow = ai.defineFlow(
+const analyzeAptitudeFlow = ai ? ai.defineFlow(
   {
     name: 'analyzeAptitudeFlow',
     inputSchema: AnalyzeAptitudeInputSchema,
@@ -71,6 +64,7 @@ const analyzeAptitudeFlow = ai.defineFlow(
   },
   async input => {
     try {
+      if (!analyzeAptitudePrompt) throw new Error("Prompt not defined");
       const { output } = await analyzeAptitudePrompt(input);
       return output!;
     } catch (err: any) {
@@ -84,4 +78,24 @@ const analyzeAptitudeFlow = ai.defineFlow(
       throw err;
     }
   }
-);
+) : null;
+
+export async function analyzeAptitude(input: AnalyzeAptitudeInput): Promise<AnalyzeAptitudeOutput> {
+  // Mock Mode: If no AI is configured, return mock data instantly.
+  if (!analyzeAptitudeFlow) {
+    console.log("Mock Mode: Returning hardcoded aptitude analysis.");
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return MOCK_APTITUDE_RESULT;
+  }
+
+  try {
+    return await analyzeAptitudeFlow(input);
+  } catch (err) {
+    // Log full error server-side for debugging
+    // eslint-disable-next-line no-console
+    console.error('analyzeAptitude server action failed:', err);
+    // Return the specific error to the client for debugging
+    throw new Error(`Server error: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}

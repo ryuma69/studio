@@ -51,7 +51,8 @@ const createFallbackAi = () => {
   }
 
   if (plugins.length === 0) {
-    throw new Error('No AI providers available. Please set GROQ_API_KEY or GEMINI_API_KEY environment variables.');
+    console.warn('No AI providers available. Returning null AI instance. App will use mock data.');
+    return null;
   }
 
   return genkit({

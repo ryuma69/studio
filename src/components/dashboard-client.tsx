@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { doc, setDoc, addDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, setDoc, addDoc, collection, getDocs, getDoc, query, orderBy, limit } from 'firebase/firestore';
 import { useAuth, useUser, useFirestore } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import html2canvas from 'html2canvas';
@@ -40,6 +40,7 @@ export default function DashboardClient({
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore(); // Hook
+
   const [quizResults, setQuizResults] = useState<QuizResults | null>(null);
   const [analysis, setAnalysis] = useState<AptitudeAnalysis | null>(null);
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
@@ -47,10 +48,21 @@ export default function DashboardClient({
   const [simulationFeedback, setSimulationFeedback] = useState<string | null>(null);
   const [finalReport, setFinalReport] = useState<DetailedReportOutput | null>(null);
 
-  const [pageState, setPageState] = useState<'loading' | 'analyzing' | 'results' | 'simulated'>('loading');
+  const [pageState, setPageState] = useState<'loading' | 'analyzing' | 'results' | 'simulated' | 'error'>('loading');
+  const [error, setError] = useState<string | null>(null);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+
+  // Auto-open report if found in DB on load
+  useEffect(() => {
+    if (finalReport && pageState === 'results') {
+      setIsReportOpen(true);
+    }
+  }, [finalReport, pageState]);
 
   useEffect(() => {
     if (isUserLoading) {
+      // ... (keep existing code till DialogContent start)
+
       setPageState('loading');
       return;
     }
@@ -59,64 +71,131 @@ export default function DashboardClient({
       return;
     }
 
-    const results = localStorage.getItem('quizResults');
-    if (results) {
-      const parsedResults = JSON.parse(results) as QuizResults;
-      setQuizResults(parsedResults);
-      setPageState('analyzing');
+    const checkResults = async () => {
+      if (!user || !firestore) return;
 
-      // Fetch questions from DB to provide context
-      const fetchQuestionsAndAnalyze = async () => {
-        if (!firestore) return;
+      try {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
 
-        try {
-          const questionsSnapshot = await getDocs(collection(firestore, 'questions'));
-          const questionsMap = new Map();
-          questionsSnapshot.forEach(doc => {
-            questionsMap.set(doc.id, doc.data().question);
-          });
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
 
-          // Reconstruct detailed answers. 
-          // Assuming answers array corresponds to q1, q2... q8 in order as per original quiz
-          // We need to match the index to the ID. q1 is index 0.
-          const detailedAnswers = parsedResults.answers.map((ans, idx) => {
-            const qId = `q${idx + 1}`;
-            return {
-              question: questionsMap.get(qId) || `Question ${idx + 1}`,
-              answer: ans
-            };
-          });
-
-          const analysisResult = await aptitudeAnalysisAction({
-            detailedAnswers,
-            timeTaken: parsedResults.timeTaken
-          });
-
-          setAnalysis(analysisResult);
-          setPageState('results');
-
-          // Persist Analysis
-          if (user) {
-            await setDoc(doc(firestore, 'users', user.uid), {
-              careerAnalysis: {
-                ...analysisResult,
-                analyzedAt: new Date().toISOString()
-              }
-            }, { merge: true });
+          // 1. Existing Analysis (Dashboard Summary)
+          if (userData.careerAnalysis) {
+            setAnalysis(userData.careerAnalysis as AptitudeAnalysis);
+            setPageState('results');
           }
 
-        } catch (err) {
-          console.error("Error during analysis flow:", err);
-          // Fallback or error state?
+          // 2. Existing Quiz Results (Context)
+          if (userData.aptitudeResults) {
+            const { answers, timeTaken } = userData.aptitudeResults;
+            const answersArray = Array.isArray(answers) ? answers : (answers && typeof answers === 'object' ? Object.values(answers) : []);
+            setQuizResults({ answers: answersArray, timeTaken: timeTaken || 0 });
+          }
+
+          // 3. Fetch Latest Detailed Report from Subcollection
+          // We look for the most recent report in users/{uid}/reports
+          const reportsRef = collection(firestore, 'users', user.uid, 'reports');
+          const q = query(reportsRef, orderBy('generatedAt', 'desc'), limit(1));
+          const querySnapshot = await getDocs(q);
+
+          let latestReportData = null;
+          let streamName = '';
+
+          if (!querySnapshot.empty) {
+            const reportDoc = querySnapshot.docs[0].data() as any;
+            latestReportData = reportDoc.report;
+            streamName = reportDoc.stream;
+            console.log("Found detailed report in subcollection");
+          } else if (userData.report) {
+            // Fallback to field if subcollection empty (legacy support)
+            console.log("Found detailed report in user field");
+            if (userData.report.report) {
+              latestReportData = userData.report.report;
+              streamName = userData.report.stream;
+            } else {
+              latestReportData = userData.report; // Assume direct object
+            }
+          }
+
+          if (latestReportData && latestReportData.strengths && latestReportData.suitability) {
+            setFinalReport(latestReportData as DetailedReportOutput);
+            if (streamName) setSelectedStream(streamName);
+            // Note: The useEffect will handle auto-opening the dialog
+          }
+
+          if (userData.careerAnalysis) return;
+
+          // If no analysis yet, fallback to calculating it if results exist
+          if (userData.aptitudeResults && !userData.careerAnalysis) {
+            const { answers, timeTaken } = userData.aptitudeResults;
+            const answersArray = Array.isArray(answers) ? answers : (answers && typeof answers === 'object' ? Object.values(answers) : []);
+            const resultsFromDB = { answers: answersArray, timeTaken: timeTaken || 0 };
+
+            setQuizResults(resultsFromDB);
+            setPageState('analyzing');
+            fetchQuestionsAndAnalyze(resultsFromDB);
+            return;
+          }
         }
-      };
+      } catch (e) {
+        console.error("Error fetching user data:", e);
+      }
 
-      fetchQuestionsAndAnalyze();
+      // 4. Fallback/Redirect
+      console.error('No quiz data found in DB.');
+      router.push('/aptitude-test');
+    };
 
-    } else {
-      console.error('Quiz data not found.');
-      router.push('/quiz');
-    }
+    const fetchQuestionsAndAnalyze = async (r: QuizResults) => {
+      if (!firestore) return;
+
+      try {
+        const questionsSnapshot = await getDocs(collection(firestore, 'questions'));
+        const questionsMap = new Map();
+        questionsSnapshot.forEach(doc => {
+          questionsMap.set(doc.id, doc.data().question);
+        });
+
+        // Reconstruct detailed answers.
+        const currentAnswers = r.answers || [];
+
+        const detailedAnswers = currentAnswers.map((ans, idx) => {
+          const qId = `q${idx + 1}`;
+          const questionText = questionsMap.has(qId) ? questionsMap.get(qId) : `Question ${idx + 1}`;
+          return {
+            question: questionText,
+            answer: ans
+          };
+        });
+
+        const analysisResult = await aptitudeAnalysisAction({
+          detailedAnswers,
+          timeTaken: r.timeTaken
+        });
+
+        setAnalysis(analysisResult);
+        setPageState('results');
+
+        // Persist Analysis
+        if (user) {
+          await setDoc(doc(firestore, 'users', user.uid), {
+            careerAnalysis: {
+              ...analysisResult,
+              analyzedAt: new Date().toISOString()
+            }
+          }, { merge: true });
+        }
+
+      } catch (err) {
+        console.error("Error during analysis flow:", err);
+        setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+        setPageState('error');
+      }
+    };
+
+    checkResults();
   }, [user, isUserLoading, firestore, router, aptitudeAnalysisAction]);
 
   const handleSelectStream = (stream: string) => {
@@ -282,6 +361,21 @@ export default function DashboardClient({
     );
   }
 
+  if (pageState === 'error') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-8 text-center">
+        <div className="bg-red-50 text-red-600 p-6 rounded-lg max-w-md">
+          <h2 className="text-xl font-bold mb-2">Analysis Failed</h2>
+          <p className="mb-4">{error || "Something went wrong while communicating with the AI."}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+          <Button variant="link" className="mt-2" onClick={handleExit}>Go Home</Button>
+        </div>
+      </div>
+    );
+  }
+
+
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <header className="max-w-5xl mx-auto mb-8 flex justify-between items-center">
@@ -291,11 +385,73 @@ export default function DashboardClient({
             Welcome, {user?.displayName || 'Explorer'}. Here is your personalized path forward.
           </p>
         </div>
-        <Button variant="outline" onClick={handleExit}>
-          <LogOut className="mr-2" />
-          Exit
-        </Button>
+        <div className="flex gap-2">
+          {finalReport && (
+            <Button onClick={() => setIsReportOpen(true)} className="bg-green-600 hover:bg-green-700">
+              <FileText className="mr-2" /> View Detailed Parent Report
+            </Button>
+          )}
+          <Button variant="outline" onClick={handleExit}>
+            <LogOut className="mr-2" />
+            Exit
+          </Button>
+        </div>
       </header>
+
+      {/* Detailed Report Dialog (Moved outside of stream logic for global access) */}
+      <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+        <DialogContent id="detailed-report-dialog-content" className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center text-primary">Your Comprehensive Career Report</DialogTitle>
+            <CardDescription className="text-center">
+              Analysis for {selectedStream}
+            </CardDescription>
+          </DialogHeader>
+          {finalReport && (
+            <div className="p-2 space-y-6">
+              <div id="report-chart-container" className="flex justify-center bg-white p-4 rounded-xl border shadow-sm">
+                <DetailedReportChart data={finalReport.aptitudeScores} onDownload={handleDownloadReport} />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-lg border border-blue-100 dark:border-blue-900/20">
+                  <h3 className="font-semibold text-lg text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" /> Key Strengths
+                  </h3>
+                  <p className="text-sm leading-relaxed">{finalReport.strengths}</p>
+                </div>
+
+                <div className="bg-green-50 dark:bg-green-900/10 p-4 rounded-lg border border-green-100 dark:border-green-900/20">
+                  <h3 className="font-semibold text-lg text-green-700 dark:text-green-300 mb-2 flex items-center gap-2">
+                    <MapIcon className="h-5 w-5" /> Suitability Analysis
+                  </h3>
+                  <p className="text-sm leading-relaxed">{finalReport.suitability}</p>
+                </div>
+              </div>
+
+              <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-lg border border-purple-100 dark:border-purple-900/20">
+                <h3 className="font-semibold text-lg text-purple-700 dark:text-purple-300 mb-3 flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" /> Future Career Opportunities
+                </h3>
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {finalReport.jobProspects.map((job, index) => (
+                    <li key={`${job}-${index}`} className="flex items-start gap-2 text-sm bg-background/50 p-2 rounded">
+                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-purple-500 shrink-0" />
+                      {job}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="flex justify-center pt-4">
+                <Button onClick={handleDownloadReport} className="w-full sm:w-auto">
+                  <FileText className="mr-2 h-4 w-4" /> Download PDF Report
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <main className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-6">
@@ -381,7 +537,7 @@ export default function DashboardClient({
                     {isSimulating ? (
                       <><Loader className="animate-spin mr-2" />Simulating...</>
                     ) : (
-                      `Simulate a Day in ${selectedStream}`
+                      `Simulate a Day in ${selectedStream} `
                     )}
                   </Button>
                 </CardContent>
@@ -473,46 +629,8 @@ export default function DashboardClient({
                         <CollegeLocator />
                       </DialogContent>
                     </Dialog>
-                    <Dialog onOpenChange={open => !open && setFinalReport(null)}>
-                      <DialogTrigger asChild>
-                        <Button onClick={handleGenerateReport} disabled={isReporting} className="w-full">
-                          <FileText className="mr-2" /> {isReporting ? 'Generating...' : 'Get Detailed Report'}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent id="detailed-report-dialog-content" className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Your Detailed Career Report</DialogTitle>
-                        </DialogHeader>
-                        {isReporting && (
-                          <div className="space-y-2 p-4 animate-pulse">
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-3/4" />
-                          </div>
-                        )}
-                        {finalReport && (
-                          <div className="p-4">
-                            <div id="report-chart-container">
-                              <DetailedReportChart data={finalReport.aptitudeScores} onDownload={handleDownloadReport} />
-                            </div>
-                            <div className="mt-4">
-                              <h3 className="font-semibold">Strengths:</h3>
-                              <p className="text-sm text-muted-foreground">{finalReport.strengths}</p>
-                            </div>
-                            <div className="mt-4">
-                              <h3 className="font-semibold">Suitability for {selectedStream}:</h3>
-                              <p className="text-sm text-muted-foreground">{finalReport.suitability}</p>
-                            </div>
-                            <div className="mt-4">
-                              <h3 className="font-semibold">Future Job Prospects:</h3>
-                              <ul className="list-disc list-inside text-sm text-muted-foreground">
-                                {finalReport.jobProspects.map((job, index) => <li key={`${job}-${index}`}>{job}</li>)}
-                              </ul>
-                            </div>
-                          </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                    {/* The second button here is redundant if we view report via header, but we keep it for flow purposes */}
+                    <div />
                   </CardContent>
                 </Card>
               )}

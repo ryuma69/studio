@@ -67,7 +67,7 @@ export default function Home() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Compass className="h-8 w-8" />
           </div>
-          <CardTitle className="text-3xl font-bold text-primary">10th Grade Career Compass</CardTitle>
+          <CardTitle className="text-3xl font-bold text-primary">Vidhya Sarathi</CardTitle>
           <CardDescription className="text-muted-foreground">
             Confused about what to do after 10th? Let's find the right path for you.
           </CardDescription>
