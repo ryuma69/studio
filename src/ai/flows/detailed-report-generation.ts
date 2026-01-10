@@ -36,11 +36,7 @@ const MOCK_DETAILED_REPORT: DetailedReportOutput = {
   ]
 };
 
-<<<<<<< HEAD
-const prompt = ai!.definePrompt({
-=======
 const prompt = ai ? ai.definePrompt({
->>>>>>> d4e3f69bc80057d8d1a3fd533acdfbcc2cfcc108
   name: 'detailedReportPrompt',
   input: { schema: DetailedReportInputSchema },
   output: { schema: DetailedReportOutputSchema },
@@ -59,11 +55,7 @@ Based on this, provide the following information in JSON format:
 `,
 }) : null;
 
-<<<<<<< HEAD
-const detailedReportFlow = ai!.defineFlow(
-=======
 const detailedReportFlow = ai ? ai.defineFlow(
->>>>>>> d4e3f69bc80057d8d1a3fd533acdfbcc2cfcc108
   {
     name: 'detailedReportFlow',
     inputSchema: DetailedReportInputSchema,

@@ -62,11 +62,7 @@ const MOCK_SIMULATION: SimulateCareerStreamOutput = {
   conclusion: "Great job today! You experienced the balancing act of a professional in this field. You showed good decision-making skills."
 };
 
-<<<<<<< HEAD
-const prompt = ai!.definePrompt({
-=======
 const prompt = ai ? ai.definePrompt({
->>>>>>> d4e3f69bc80057d8d1a3fd533acdfbcc2cfcc108
   name: 'simulateCareerStreamPrompt',
   input: { schema: SimulateCareerStreamInputSchema },
   output: { schema: SimulateCareerStreamOutputSchema },
@@ -94,11 +90,7 @@ The root object directly contains:
 `,
 }) : null;
 
-<<<<<<< HEAD
-const simulateCareerStreamFlow = ai!.defineFlow(
-=======
 const simulateCareerStreamFlow = ai ? ai.defineFlow(
->>>>>>> d4e3f69bc80057d8d1a3fd533acdfbcc2cfcc108
   {
     name: 'simulateCareerStreamFlow',
     inputSchema: SimulateCareerStreamInputSchema,

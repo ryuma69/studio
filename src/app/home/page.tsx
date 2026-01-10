@@ -28,6 +28,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Brain, Map, LineChart, ArrowRight, Sparkles, User, LogOut, Settings, Edit, FileText, ChevronLeft, Calendar } from 'lucide-react';
 import DetailedReportChart from '@/components/detailed-report-chart';
 import html2canvas from 'html2canvas';
+import { GlowCard } from '@/components/ui/spotlight-card';
+import { MagneticButton } from '@/components/ui/magnetic-button';
+
 
 type ReportData = {
     id: string;
@@ -187,24 +190,29 @@ export default function HomePage() {
                     </p>
 
                     <div className="pt-4">
-                        <Button
-                            size="lg"
-                            className="text-lg h-14 px-8 rounded-full shadow-lg hover:shadow-xl transition-all"
-                            onClick={() => router.push('/aptitude-test')}
-                        >
-                            <Brain className="mr-2 h-6 w-6" />
-                            Start Aptitude Analysis
-                        </Button>
+                        <MagneticButton>
+                            <Button
+                                size="lg"
+                                className="text-lg h-14 px-8 rounded-full shadow-lg hover:shadow-xl transition-all"
+                                onClick={() => router.push('/aptitude-test')}
+                            >
+                                <Brain className="mr-2 h-6 w-6" />
+                                Start Aptitude Analysis
+                            </Button>
+                        </MagneticButton>
                     </div>
                 </section>
 
                 {/* Features Grid */}
+                {/* Features Grid */}
                 <section className="grid md:grid-cols-2 gap-6">
-                    <Card
-                        className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md"
+                    <GlowCard
+                        className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md"
                         onClick={handleExplorePaths}
+                        customSize
+                        glowColor="blue"
                     >
-                        <CardHeader>
+                        <CardHeader className="relative z-10">
                             <CardTitle className="flex items-center gap-3">
                                 <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg group-hover:scale-110 transition-transform">
                                     <Map className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -215,45 +223,70 @@ export default function HomePage() {
                                 Explore interactive roadmaps for different streams and careers.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="h-24 flex items-center justify-center text-muted-foreground text-sm italic border-t bg-muted/20">
+                        <CardContent className="h-24 flex items-center justify-center text-muted-foreground text-sm italic border-t bg-muted/20 relative z-10">
                             See detailed roadmaps
                         </CardContent>
-                        <CardFooter>
-                            <div className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-between cursor-pointer transition-colors group-hover:bg-primary group-hover:text-primary-foreground")}>
+                        <CardFooter className="relative z-10">
+                            <div className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-between cursor-pointer transition-colors hover:bg-primary hover:text-primary-foreground rounded-xl")}>
                                 Explore Paths <ArrowRight className="h-4 w-4" />
                             </div>
                         </CardFooter>
-                    </Card>
+                    </GlowCard>
 
                     <Dialog open={isReportsListOpen} onOpenChange={setIsReportsListOpen}>
                         <DialogTrigger asChild>
-                            <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-3">
-                                        <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg group-hover:scale-110 transition-transform">
-                                            <LineChart className="h-6 w-6 text-green-600 dark:text-green-400" />
+                            {/* We need a wrapping div or forwardRef for DialogTrigger if GlowCard doesn't forward ref properly, 
+                                but standard DialogTrigger asChild expects a single child. GlowCard is a functional component.
+                                Let's assume standard behavior. If it breaks, I'll wrap in div. 
+                                Actually, looking at GlowCard definition, it uses inner refs but doesn't strictly forwardRef to the outer div. 
+                                DialogTrigger asChild requires the child to accept a ref. 
+                                SAFEST BET: Wrap GlowCard in a div? No, DialogTrigger asChild clones the element and passes props. 
+                                If GlowCard doesn't forward ref, Trigger won't work perfectly for keyboard nav/focus.
+                                HOWEVER, for now, let's wrap it in a plain <div> and *not* use asChild on Trigger, 
+                                OR modify GlowCard to forward ref.
+                                Modifying GlowCard is better but I will try wrapping in a <div> inside standard Trigger (without asChild) first? 
+                                No, DialogTrigger acts as a button by default. 
+                                Let's assume I can change DialogTrigger to NOT use asChild and just wrap the GlowCard. 
+                                -> <DialogTrigger><GlowCard.../></DialogTrigger> : This renders a button wrapping a div (GlowCard). Valid HTML but questionable semantics.
+                                -> Better: Use standard <div> with onClick to open dialog?
+                                -> No, wait, existing code uses `DialogTrigger asChild`.
+                                -> Let's check GlowCard again. It has `ref={cardRef}`. It does NOT use `forwardRef`.
+                                -> I will duplicate functionality: onClick={() => setIsReportsListOpen(true)} on the GlowCard and remove DialogTrigger wrapper for the card itself, 
+                                   controlling the Dialog via `open={isReportsListOpen}` which is already there!
+                            */}
+                            <div className="w-full h-full" onClick={() => setIsReportsListOpen(true)}>
+                                <GlowCard
+                                    className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md h-full"
+                                    customSize
+                                    glowColor="green"
+                                >
+                                    <CardHeader className="relative z-10">
+                                        <CardTitle className="flex items-center gap-3">
+                                            <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg group-hover:scale-110 transition-transform">
+                                                <LineChart className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                            </div>
+                                            Check Results
+                                        </CardTitle>
+                                        <CardDescription>
+                                            View your existing detailed career reports.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="h-24 flex items-center justify-center text-sm border-t bg-muted/20 relative z-10">
+                                        {isLoadingReports ? (
+                                            <span className="text-muted-foreground">Loading reports...</span>
+                                        ) : reports.length > 0 ? (
+                                            <span className="text-primary font-medium">{reports.length} Reports Available</span>
+                                        ) : (
+                                            <span className="text-muted-foreground">No reports generated yet</span>
+                                        )}
+                                    </CardContent>
+                                    <CardFooter className="relative z-10">
+                                        <div className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-between cursor-pointer transition-colors hover:bg-primary hover:text-primary-foreground rounded-xl")}>
+                                            Show Results <ArrowRight className="h-4 w-4" />
                                         </div>
-                                        Check Results
-                                    </CardTitle>
-                                    <CardDescription>
-                                        View your existing detailed career reports.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="h-24 flex items-center justify-center text-sm border-t bg-muted/20">
-                                    {isLoadingReports ? (
-                                        <span className="text-muted-foreground">Loading reports...</span>
-                                    ) : reports.length > 0 ? (
-                                        <span className="text-primary font-medium">{reports.length} Reports Available</span>
-                                    ) : (
-                                        <span className="text-muted-foreground">No reports generated yet</span>
-                                    )}
-                                </CardContent>
-                                <CardFooter>
-                                    <div className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-between cursor-pointer transition-colors group-hover:bg-primary group-hover:text-primary-foreground")}>
-                                        Show Results <ArrowRight className="h-4 w-4" />
-                                    </div>
-                                </CardFooter>
-                            </Card>
+                                    </CardFooter>
+                                </GlowCard>
+                            </div>
                         </DialogTrigger>
                         <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col p-0">
                             {!selectedReport ? (

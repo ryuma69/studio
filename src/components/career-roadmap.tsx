@@ -37,16 +37,53 @@ const RoadmapMilestone = ({ title, milestones, details }: { title: string; miles
   </div>
 );
 
+// Helper to generate generic roadmap if DB fails
+const getGenericRoadmap = (streamName: string): DBRouteStep[] => [
+  {
+    year: "Class 11 & 12",
+    milestone: "Foundation Building",
+    details: `Focus on core subjects relevant to ${streamName}. Build strong conceptual clarity.`
+  },
+  {
+    year: "Entrance Phase",
+    milestone: "Competitive Exams & Applications",
+    details: "Prepare for relevant entrance exams or build a portfolio for college admissions."
+  },
+  {
+    year: "Undergraduate",
+    milestone: "Bachelor's Degree (3-4 Years)",
+    details: `Pursue a degree in ${streamName} or related fields. Engage in projects and workshops.`
+  },
+  {
+    year: "Skill Acquisition",
+    milestone: "Internships & Certifications",
+    details: "Gain practical experience through internships. Get certified in specialized tools."
+  },
+  {
+    year: "Professional Start",
+    milestone: "Entry Level Job / Higher Studies",
+    details: "Start your career as a junior professional or pursue a Master's degree for specialization."
+  }
+];
+
 export default function CareerRoadmap({ stream }: { stream: string }) {
   const firestore = useFirestore();
   const [dbData, setDbData] = useState<DBRouteStep[] | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // Removed local fallback logic
 
   useEffect(() => {
     const fetchRoadmap = async () => {
-      if (!firestore || !stream) return;
+      if (!stream) return;
+
+      // If no firestore, fallback immediately
+      if (!firestore) {
+        setDbData(getGenericRoadmap(stream));
+        setIsVerified(false);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         const roadmapsRef = collection(firestore, 'careerPaths');
@@ -64,11 +101,15 @@ export default function CareerRoadmap({ stream }: { stream: string }) {
 
         if (match) {
           setDbData(match.data().roadmap);
+          setIsVerified(true);
         } else {
-          setDbData(null);
+          setDbData(getGenericRoadmap(stream));
+          setIsVerified(false);
         }
       } catch (e) {
         console.error("Failed to fetch roadmap from DB", e);
+        setDbData(getGenericRoadmap(stream));
+        setIsVerified(false);
       } finally {
         setLoading(false);
       }
@@ -81,33 +122,32 @@ export default function CareerRoadmap({ stream }: { stream: string }) {
     return (
       <div className="p-8 text-center space-y-3">
         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-        <p className="text-muted-foreground animate-pulse">Retrieving verified roadmap from database...</p>
-      </div>
-    );
-  }
-
-  if (dbData && dbData.length > 0) {
-    return (
-      <div className="w-full mt-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <div className="mb-6 p-4 bg-primary/5 rounded-lg border border-primary/10">
-          <h3 className="font-bold text-primary flex items-center gap-2"><GraduationCap className="h-5 w-5" /> Database Path Found</h3>
-          <p className="text-xs text-muted-foreground">Showing verified career roadmap from Vidhya Sarathi Database.</p>
-        </div>
-        {dbData.map((step, idx) => (
-          <RoadmapMilestone
-            key={idx}
-            title={step.year}
-            milestones={[step.milestone, step.details]}
-          />
-        ))}
+        <p className="text-muted-foreground animate-pulse">Charting your path...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-8 text-center text-muted-foreground border-2 border-dashed rounded-xl">
-      <Briefcase className="h-10 w-10 mx-auto mb-2 opacity-20" />
-      <p>No verified roadmap found in database for "{stream}".</p>
+    <div className="w-full mt-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className={`mb-6 p-4 rounded-lg border ${isVerified ? 'bg-primary/5 border-primary/10' : 'bg-muted/30 border-muted'}`}>
+        <h3 className={`font-bold flex items-center gap-2 ${isVerified ? 'text-primary' : 'text-muted-foreground'}`}>
+          <GraduationCap className="h-5 w-5" />
+          {isVerified ? 'Verified Career Path' : 'Suggested Roadmap'}
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          {isVerified
+            ? 'Verified by Vidhya Sarathi experts.'
+            : 'AI-suggested general guidelines for this career path.'}
+        </p>
+      </div>
+
+      {dbData && dbData.map((step, idx) => (
+        <RoadmapMilestone
+          key={idx}
+          title={step.year}
+          milestones={[step.milestone, step.details]}
+        />
+      ))}
     </div>
   );
 }
